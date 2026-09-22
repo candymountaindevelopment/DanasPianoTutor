@@ -30,6 +30,11 @@ async function ensureContext() {
     state.analyser = state.ctx.createAnalyser();
     state.analyser.fftSize = FFT;
     state.analyser.smoothingTimeConstant = 0;
+    // An analyser with no output is not always processed; pull it silently.
+    const sink = state.ctx.createGain();
+    sink.gain.value = 0;
+    state.analyser.connect(sink);
+    sink.connect(state.ctx.destination);
   }
   if (state.ctx.state === "suspended") await state.ctx.resume();
 }
@@ -163,10 +168,14 @@ function addEvent(e) {
 
 /* -------------------------------------------------------------- drawing */
 
+/* Size the backing store to the CSS box × device pixel ratio. The CSS box
+ * must come from the stylesheet: a canvas sized only by its attributes
+ * would grow by the ratio on every frame. */
 function fit(canvas) {
   const r = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
   const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+  if (w > 8192 || h > 8192) throw new Error(`canvas #${canvas.id} is not CSS-sized (${w}×${h})`);
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   const g = canvas.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);

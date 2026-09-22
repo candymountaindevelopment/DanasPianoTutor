@@ -22,13 +22,21 @@ export class Listener {
 
   /* Open the microphone on the transport's AudioContext (one context, so
    * currentTime is shared). Throws the getUserMedia error on refusal. */
+  _ensureAnalyser(ctx) {
+    if (this.analyser) return;
+    this.analyser = ctx.createAnalyser();
+    this.analyser.fftSize = FFT;
+    this.analyser.smoothingTimeConstant = 0;
+    // An analyser with no output is not always processed; pull it silently.
+    const sink = ctx.createGain();
+    sink.gain.value = 0;
+    this.analyser.connect(sink);
+    sink.connect(ctx.destination);
+  }
+
   async start(ctx) {
     this.ctx = ctx;
-    if (!this.analyser) {
-      this.analyser = ctx.createAnalyser();
-      this.analyser.fftSize = FFT;
-      this.analyser.smoothingTimeConstant = 0;
-    }
+    this._ensureAnalyser(ctx);
     if (this.stream || this.injected) return;
     this.stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
@@ -40,7 +48,7 @@ export class Listener {
   /* Feed any node instead of the microphone (self-test, scripted checks). */
   inject(ctx, node) {
     this.ctx = ctx;
-    if (!this.analyser) { this.analyser = ctx.createAnalyser(); this.analyser.fftSize = FFT; this.analyser.smoothingTimeConstant = 0; }
+    this._ensureAnalyser(ctx);
     node.connect(this.analyser);
     this.injected = node;
   }

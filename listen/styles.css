@@ -30,6 +30,8 @@ canvas.panel { width: 100%; height: 100%; display: block; }
 .readout { display: grid; grid-template-columns: 180px 1fr; grid-template-rows: auto auto; gap: 4px 18px; padding: 10px 16px; align-items: center; }
 .note { grid-row: 1 / span 2; font-size: 84px; font-weight: 700; line-height: 1; text-align: center; color: var(--accent); }
 .note sub { font-size: 30px; color: var(--text-dim); font-weight: 400; }
+.meter { min-width: 0; }
+.meter canvas { display: block; width: 100%; height: 56px; }
 .meter-labels { display: flex; justify-content: space-between; color: var(--text-dim); font-size: 11px; }
 .facts { display: flex; gap: 26px; flex-wrap: wrap; }
 .facts div { display: flex; flex-direction: column; }
