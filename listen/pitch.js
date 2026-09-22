@@ -35,6 +35,20 @@ export function detectPitch(buf, sampleRate, opts = {}) {
     if (cmnd[best] > 0.5) return null;
     tau = best;
   }
+  // A window that is near-silent where YIN looks, but loud elsewhere — a
+  // transient at its very end — has no pitch to find: the difference function
+  // is ~0 across the silence, which would otherwise be reported as a
+  // confident note. Compare the part actually analysed with the whole window.
+  const looked = Math.min(buf.length, win + tau);
+  let headSum = 0, allSum = 0;
+  for (let i = 0; i < buf.length; i++) {
+    const v = buf[i] * buf[i];
+    allSum += v;
+    if (i < looked) headSum += v;
+  }
+  const head = Math.sqrt(headSum / Math.max(1, looked)), all = Math.sqrt(allSum / buf.length);
+  if (head < all * 0.2) return null;
+
   let period = tau;
   if (tau > 0 && tau < tauMax) {
     const a = cmnd[tau - 1], b = cmnd[tau], c = cmnd[tau + 1];

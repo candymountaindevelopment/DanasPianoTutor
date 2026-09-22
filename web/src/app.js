@@ -518,8 +518,10 @@ class App {
       this.ribbon.clear();
       this.showHeard(null);
     }
-    // The piano is muted while listening, so the microphone hears only the student.
-    this.transport.updateOptions({ voice_db: on ? -100 : -12 });
+    // The piano is muted while listening, so the microphone hears only the
+    // student — and the metronome switches to its unpitched click, which the
+    // detector cannot mistake for a played note (raw/teach/voice.py).
+    this.transport.updateOptions({ voice_db: on ? -100 : -12, metronome_unpitched: on });
   }
 
   showHeard(reading) {

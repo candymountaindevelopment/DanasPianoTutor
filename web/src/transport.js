@@ -9,7 +9,8 @@ export class Transport {
     this.ctx = null;
     this.index = null;
     this.lesson = null;
-    this.options = { tempo: 80, hands: "both", metronome: true, count_in_bars: 1, loop_bars: null, voice_db: -12 };
+    this.options = { tempo: 80, hands: "both", metronome: true, count_in_bars: 1, loop_bars: null,
+                     voice_db: -12, metronome_unpitched: false };
     this.onPass = null;          // called with the pass number each time a loop wraps
     this.pass = 0;
     this.loop = false;

@@ -111,6 +111,7 @@ def render(index: int, options_json: str) -> str:
         loop_bars=(int(loop[0]), int(loop[1])) if loop else None,
         voice_db=float(opts.get("voice_db", -12.0)),
         metronome_db=float(opts.get("metronome_db", -12.0)),
+        metronome_unpitched=bool(opts.get("metronome_unpitched", False)),
         sample_rate=int(opts.get("sample_rate", 44100)),
     )
     _last_render = render_lesson(_lesson(index), options, _cache)

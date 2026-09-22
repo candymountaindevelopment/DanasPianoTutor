@@ -56,8 +56,28 @@ def voice(name: str) -> SynthParams:
     )
 
 
-def click(accent: bool = False) -> SynthParams:
-    """A metronome tick; the accent is higher and slightly longer."""
+def click(accent: bool = False, unpitched: bool = False) -> SynthParams:
+    """A metronome tick; the accent is higher and slightly longer.
+
+    `unpitched` returns the click used while the microphone is listening
+    (Practice mode): a short high noise burst instead of a sine. A sine
+    click is perfectly periodic and the pitch detector reports it as a
+    played note; raising its pitch above the detector's 2 kHz ceiling would
+    not help either, because a periodic tone dips at every multiple of its
+    period, so the detector would lock onto a sub-harmonic inside the range.
+    Noise has no period to find, and the high-pass keeps its energy above
+    the notes a lesson uses.
+    """
+    if unpitched:
+        return SynthParams(
+            oscillator="white", duration=0.05 if accent else 0.035, amplitude=0.75,
+            pitch=Trajectory.constant(C4_HZ),          # noise ignores it; the field is required
+            envelope=ADSR(0.0008, 0.016 if accent else 0.010, 0.0, 0.018),
+            drift=Drift(0.0), stretch_mode="preserve_attack",
+            filters=[FilterNode("highpass",
+                                {"cutoff": 2600.0 if accent else 3600.0, "resonance": 0.9},
+                                True, "v1")],
+        )
     return SynthParams(
         oscillator="sine", duration=0.045 if accent else 0.03, amplitude=0.7,
         pitch=Trajectory.constant(2200.0 if accent else 1500.0),

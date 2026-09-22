@@ -36,6 +36,7 @@ class PlayOptions:
     loop_bars: tuple[int, int] | None = None   # 1-based inclusive measure range, None = whole piece
     voice_db: float = -12.0             # six-note stacks stay under 0 dBFS without normalising
     metronome_db: float = -12.0
+    metronome_unpitched: bool = False   # noise click, for when the microphone is listening
     sample_rate: int = 44100
     tail: float = 0.35                  # seconds of silence after the last note so releases finish
 
@@ -114,6 +115,15 @@ def note_overrides(note: Note, root_midi: float, seconds_per_division: float, ga
     }
 
 
+def _clicks(cache, options: "PlayOptions", sr: int):
+    """The beat and downbeat clicks, cached under their own keys."""
+    suffix = "_np" if options.metronome_unpitched else ""
+    gain = {"volume_db": options.metronome_db}
+    tick = cache.render("click" + suffix, voices.click(False, options.metronome_unpitched), gain, sr)
+    accent = cache.render("click_accent" + suffix, voices.click(True, options.metronome_unpitched), gain, sr)
+    return tick, accent
+
+
 def metronome_events(lesson: Lesson, start_division: int, end_division: int) -> list[tuple[int, bool]]:
     """(division, accent) for every beat in [start, end)."""
     out = []
@@ -150,8 +160,7 @@ def render_lesson(lesson: Lesson, options: PlayOptions, cache: NoteCache | None 
         layers.append((buf, int(round((note.start - start) * spd * sr))))
 
     if options.metronome:
-        tick = cache.render("click", voices.click(False), {"volume_db": options.metronome_db}, sr)
-        accent = cache.render("click_accent", voices.click(True), {"volume_db": options.metronome_db}, sr)
+        tick, accent = _clicks(cache, options, sr)
         for division, is_accent in metronome_events(lesson, start, end):
             layers.append((accent if is_accent else tick, int(round((division - start) * spd * sr))))
 
@@ -174,8 +183,7 @@ def render_lesson(lesson: Lesson, options: PlayOptions, cache: NoteCache | None 
         bars = int(options.count_in_bars)
         beats = metronome_events(lesson, 0, bars * lesson.measure_divisions)
         count_in_seconds = bars * lesson.measure_divisions * spd
-        tick = cache.render("click", voices.click(False), {"volume_db": options.metronome_db}, sr)
-        accent = cache.render("click_accent", voices.click(True), {"volume_db": options.metronome_db}, sr)
+        tick, accent = _clicks(cache, options, sr)
         count_layers = [(accent if a else tick, int(round(d * spd * sr))) for d, a in beats]
         count_in = AudioBuffer.mix(count_layers, sr)
         frames = int(round(count_in_seconds * sr))

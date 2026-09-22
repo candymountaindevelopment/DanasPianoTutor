@@ -1005,7 +1005,27 @@ microphone by the Caddyfile.
 
 Ticking **Listen** in the top bar opens the microphone on the
 *transport's* `AudioContext` (one clock for both) and sets `voice_db` to -100,
-so the piano is muted while the count-in and metronome keep playing. Each
+so the piano is muted while the count-in and metronome keep playing.
+
+The metronome also changes voice. The ordinary click is a short sine
+(1500 Hz, 2200 Hz accented), which is the worst possible sound to play at a
+pitch detector: it is perfectly periodic, and measured through the real
+detector it reads as F♯6 at clarity 0.97. Raising its pitch above the 2 kHz
+ceiling would not help either — a periodic tone dips at every multiple of its
+period, so YIN would report a sub-harmonic inside the range. So
+`metronome_unpitched` (`raw/teach/voice.py`) switches to a short noise burst
+high-passed at 3.6 kHz (2.6 kHz accented): audible, with no period to find.
+Over a rendered metronome track the ordinary click is read as a pitch in 23
+frames and the practice click in **none**.
+
+One more trap lives here. A window that is near-silent where YIN looks but
+loud at its end — the frame that catches a click's attack — has a difference
+function of almost zero across the silence, which YIN reports as a confident
+note; before this was fixed, the frames just before each click read as a
+tidy ascending scale. `detectPitch` now compares the energy of the part it
+actually analysed with the whole window and returns null when the former is
+more than ~14 dB quieter. Real notes are unaffected: a rendered C3, C4 or C5
+is detected in every frame. Each
 animation frame the app samples the analyser at the current division and feeds
 `NoteTracker`, minus 80 ms — the detector's reaction time (analysis window plus
 three confirming frames) — so heard notes carry the division they were played

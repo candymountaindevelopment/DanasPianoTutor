@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.5.0",
+    "version": "1.5.1",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -656,6 +656,19 @@
         "Note lane became a 74 px tape on the staff's x-axis (ScoreView.mapper), off by default; the hand diagram was retired — the hands are drawn on the keys.",
         "Feature switches 30 → 28 (view.hands and show.nextFinger retired); kiosk preset tightened.",
         "Verified in headless Chrome: all three modes, kiosk and teacher presets, 900 px width, the palette, the title menu, the script overlay, the print layout, and a scored attempt rendered from a synthetic ranking."
+      ]
+    },
+    {
+      "date": "2026-09-22",
+      "version": "1.5.1",
+      "type": "fix",
+      "summary": "A metronome the microphone does not hear as a note",
+      "changes": [
+        "raw/teach/voice.py: click(accent, unpitched) — a high noise burst (high-passed at 3.6 kHz, 2.6 kHz accented) for when the microphone is listening; a sine click reads as a note (F#6, clarity 0.97) and raising its pitch would only move the detection to a sub-harmonic.",
+        "PlayOptions.metronome_unpitched, threaded through web_api.render and the transport; Practice switches to it with the piano mute.",
+        "listen/pitch.js: reject a window that is near-silent where YIN looks but loud at its end (a click's attack), which used to read as a confident note — the frames before each click reported an ascending scale.",
+        "Measured with the real detector over a rendered metronome track: 23 frames read as a pitch with the ordinary click, 0 with the practice click; rendered C3/C4/C5 still detected in every frame.",
+        "Tests: TestPracticeMetronome (3 cases, YIN clarity measured in numpy); suite 442."
       ]
     }
   ]

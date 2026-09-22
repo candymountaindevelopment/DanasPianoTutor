@@ -7,6 +7,8 @@ import os
 import re
 import tempfile
 import unittest
+
+import numpy as np
 from pathlib import Path
 
 from raw.export.sheet import DIVISIONS
@@ -487,3 +489,91 @@ class TestHandSpan(unittest.TestCase):
         parsed = json.loads(web_api.parse(json.dumps({"format": "raw.author", "version": 1, "lessons": [
             {"name": "a", "title": "A", "span": 6, "right": "C4(1) D4"}]})))
         self.assertEqual(parsed["lessons"][0]["span"], {"R": 6, "L": 6})
+
+
+class TestPracticeMetronome(unittest.TestCase):
+    """The click heard while the microphone is listening must not read as a note.
+
+    `yin_clarity` is the criterion web/listen/pitch.js uses: the cumulative
+    mean normalised difference function, and the clarity (1 - d) at its best
+    lag within the detector's 40-2000 Hz search range. A reading counts as a
+    note when clarity >= 0.6.
+    """
+
+    @staticmethod
+    def yin_clarity(samples, sample_rate, win=2048, min_hz=40.0, max_hz=2000.0):
+        x = np.asarray(samples, dtype=np.float64)
+        tau_min = max(2, int(sample_rate / max_hz))
+        tau_max = min(int(sample_rate / min_hz), len(x) - win - 1)
+        if tau_max <= tau_min:
+            return 0.0, None
+        d = np.empty(tau_max + 1)
+        d[0] = 0.0
+        for tau in range(1, tau_max + 1):
+            diff = x[:win] - x[tau:tau + win]
+            d[tau] = float(diff @ diff)
+        cumulative = np.cumsum(d[1:])
+        cmnd = np.ones(tau_max + 1)
+        nonzero = cumulative > 0
+        taus = np.arange(1, tau_max + 1)
+        cmnd[1:][nonzero] = d[1:][nonzero] * taus[nonzero] / cumulative[nonzero]
+        window = cmnd[tau_min:tau_max + 1]
+        best = int(np.argmin(window)) + tau_min
+        return float(max(0.0, 1.0 - cmnd[best])), sample_rate / best
+
+    def click_frames(self, unpitched):
+        """Analysis frames over a rendered click, as the browser would take them."""
+        from raw.teach import voice as voices
+        from raw.teach.player import NoteCache
+
+        sr = 44100
+        cache = NoteCache()
+        buf = cache.render("t", voices.click(False, unpitched), {"volume_db": -12.0}, sr)
+        samples = np.asarray(buf.samples, dtype=np.float64).reshape(-1)
+        # The analyser holds 4096 samples; pad so the click sits inside a window.
+        padded = np.concatenate([np.zeros(4096), samples, np.zeros(8192)])
+        frames = []
+        for start in range(0, len(padded) - 4096, 1024):
+            frames.append(padded[start:start + 4096])
+        return frames
+
+    def test_ordinary_click_is_pitched_and_practice_click_is_not(self):
+        pitched = [self.yin_clarity(f, 44100) for f in self.click_frames(False)]
+        unpitched = [self.yin_clarity(f, 44100) for f in self.click_frames(True)]
+        # The sine click is exactly what a detector reports as a note...
+        self.assertTrue(any(c >= 0.6 for c, _ in pitched),
+                        f"expected the sine click to read as a pitch; best {max(c for c, _ in pitched):.2f}")
+        # ...and the practice click is never clear enough to be one.
+        worst = max(c for c, _ in unpitched)
+        self.assertLess(worst, 0.6, f"practice click reads as a pitch (clarity {worst:.2f})")
+
+    def test_practice_click_is_audible_and_high(self):
+        from raw.teach import voice as voices
+        from raw.teach.player import NoteCache
+
+        sr = 44100
+        cache = NoteCache()
+        for accent in (False, True):
+            buf = cache.render(f"c{accent}", voices.click(accent, True), {"volume_db": -12.0}, sr)
+            x = np.asarray(buf.samples, dtype=np.float64).reshape(-1)
+            self.assertGreater(float(np.abs(x).max()), 0.05, "practice click is inaudible")
+            spectrum = np.abs(np.fft.rfft(x * np.hanning(len(x))))
+            freqs = np.fft.rfftfreq(len(x), 1 / sr)
+            centroid = float((spectrum * freqs).sum() / max(1e-9, spectrum.sum()))
+            self.assertGreater(centroid, 2000.0, f"practice click energy sits at {centroid:.0f} Hz")
+            below = spectrum[freqs < 2000].sum() / max(1e-9, spectrum.sum())
+            self.assertLess(below, 0.25, "too much of the practice click is inside the detector range")
+
+    def test_render_uses_the_practice_click_when_asked(self):
+        from raw.teach.authoring import load_lesson_file
+        from raw.teach.player import NoteCache, PlayOptions, render_lesson
+
+        lesson = load_lesson_file(EXAMPLES / "01_five_finger_warmups.json").lessons[0]
+        quiet = PlayOptions(metronome=True, voice_db=-100.0, count_in_bars=0, metronome_unpitched=True)
+        loud = PlayOptions(metronome=True, voice_db=-100.0, count_in_bars=0, metronome_unpitched=False)
+        a = render_lesson(lesson, quiet, NoteCache())
+        b = render_lesson(lesson, loud, NoteCache())
+        sa = np.asarray(a.buffer.samples).reshape(-1)
+        sb = np.asarray(b.buffer.samples).reshape(-1)
+        self.assertEqual(len(sa), len(sb))
+        self.assertFalse(np.allclose(sa, sb), "the practice option did not change the click")
