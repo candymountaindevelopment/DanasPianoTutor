@@ -27,6 +27,7 @@ export const FEATURES = [
   { id: "play.loop",          group: "Playback", label: "Practice loop and bar range",          default: true },
   { id: "play.clickKeys",     group: "Playback", label: "Click a key to hear it",              default: true },
   { id: "play.seek",          group: "Playback", label: "Click a bar to jump there",           default: true },
+  { id: "play.listen",        group: "Playback", label: "Practice tab: listen through the microphone and score the attempt", default: true },
   // Tools
   { id: "tools.script",       group: "Tools",    label: "Script editor (write and edit lessons)", default: true },
   { id: "tools.examples",     group: "Tools",    label: "Examples menu",                       default: true },
@@ -49,7 +50,7 @@ export const PRESETS = {
   },
   kiosk: {
     label: "Kiosk — listen and watch",
-    off: ["tools.script", "tools.files", "tools.share", "tools.export", "tools.print", "tools.help", "tools.ear",
+    off: ["tools.script", "tools.files", "tools.share", "tools.export", "tools.print", "tools.help", "tools.ear", "play.listen",
           "play.tempo", "play.loop", "play.countIn", "play.clickKeys", "view.lessonPanel", "app.settings"],
   },
   teacher: {

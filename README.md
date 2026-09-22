@@ -118,6 +118,19 @@ set *Source* to **GitHub Actions**. The tutor appears at
 Pages cannot send custom headers, so the security headers in
 `deploy/Caddyfile` do not apply there; the app needs none of them to run.
 
+### Practice mode — listen and score
+
+In the tutor's **Practice** tab, tick *Listen* and press Play: the tutor
+plays only the count-in and metronome, the student plays the notes, and
+when the piece (or each loop pass) ends the attempt is scored — notes hit,
+timing per note (on time / close / off, early or late on average), extra
+notes, a verdict, the bars to practise, and the missed notes coloured on the
+sheet music (red = not heard, amber = a different note was heard). Attempts
+are kept per lesson in the browser with the best one highlighted. Timing is
+measured in lesson divisions, so it works at any tempo. The detector hears
+one pitch at a time: notes that start together (a chord, both hands) count
+as one target, so practising one hand at a time gives the most useful score.
+
 ### Danas Ear — hearing what is played
 
 `listen/` is a second, standalone browser app: it takes the microphone and
@@ -129,9 +142,7 @@ Detection is YIN in plain JavaScript; no Pyodide, nothing uploaded.
 The tutor's **Ear** button opens it; the dev server serves it at
 http://127.0.0.1:8765/listen/ (`--listen` serves it alone at the root).
 It is deployed beside the tutor at `/listen/` (the Caddyfile relaxes the
-microphone policy for that path only). It is the first half of "listen to
-the student and rank the attempt"; the comparison against a lesson is not
-built yet.
+microphone policy for that path only). The same detector powers the tutor's Practice tab.
 
 Fingers you do not write are inferred from the hand position, so a beginner
 piece needs a finger on the first note, on position changes and on chords —

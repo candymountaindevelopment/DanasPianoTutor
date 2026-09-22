@@ -7,6 +7,10 @@ import { Transport } from "./transport.js";
 import { ScoreView } from "./score.js";
 import { Keyboard, Hands, Lane, COLORS } from "./views.js";
 import { handTimeline, handState, MIN_SPAN, MAX_SPAN } from "./palms.js";
+import { Listener } from "./listen.js";
+import { rankAttempt, describeError, midiLabel } from "./ranking.js";
+
+const ATTEMPTS_KEY = "dpt.attempts.v1";
 import { Settings, FEATURES, PRESETS } from "./settings.js";
 import { download, wavBlob, makeShareLink, readShareLink, store, printLesson } from "./exports.js";
 
@@ -14,6 +18,7 @@ const $ = (id) => document.getElementById(id);
 const HAND_COLOR = { R: COLORS.right, L: COLORS.left };
 const HAND_DIM = { R: COLORS.rightDim, L: COLORS.leftDim };
 const DIM_FOR = { both: [], right: ["L"], left: ["R"] };
+const HANDS_LABEL = { both: "both hands", right: "right hand", left: "left hand" };
 const HANDS_FOR = { both: ["R", "L"], right: ["R"], left: ["L"] };
 
 const TEMPLATE = {
@@ -56,11 +61,16 @@ class App {
     this.wireTabs();
     this.wireScript();
     this.wireSettings();
+    this.wirePractice();
     this.wireKeyboardShortcuts();
     this.applySettings();
 
     this.transport.onPosition = (d) => this.positionChanged(d);
-    this.transport.onState = (playing) => { $("btn-play").textContent = playing ? "❚❚ Pause" : "▶ Play"; };
+    this.transport.onState = (playing) => {
+      $("btn-play").textContent = playing ? "❚❚ Pause" : "▶ Play";
+      if (playing) this.beginAttempt(); else this.finishAttempt();
+    };
+    this.transport.onPass = () => { this.finishAttempt(); this.beginAttempt(); };
     this.transport.onMessage = (m) => this.status(m);
     this.score.onSeek = (d) => this.transport.seek(d);
     this.lane.onSeek = (d) => this.transport.seek(d);
@@ -220,6 +230,8 @@ class App {
     this.hands.setLesson(lesson);
     this.keys.fit(lesson);
     this.buildPalms();
+    this.renderAttempts();
+    $("result").hidden = true;
     this.showInfo(lesson);
     this.updateTitle();
     await this.score.setLesson(i, lesson);
@@ -271,12 +283,120 @@ class App {
     this.lane.setPosition(division);
     this.hands.setPosition(division);
     this.refreshKeys(division);
+    if (this.attempt) this.hear(division);
     const beat = this.transport.playing ? this.transport.countInBeat(division) : null;
     if (beat !== null) $("position").textContent = `count-in · ${beat}`;
     else {
       const d = Math.max(0, division), m = this.lesson.measure_divisions, b = this.lesson.beat_divisions;
       const bar = Math.floor(d / m), beatNo = Math.floor((d - bar * m) / b);
       $("position").textContent = `bar ${Math.min(bar + 1, this.lesson.measures)} · beat ${beatNo + 1}`;
+    }
+  }
+
+  /* ------------------------------------------------------- practice */
+
+  wirePractice() {
+    this.listener = new Listener();
+    this.attempt = null;
+    $("listen").onchange = () => this.listenChanged();
+    this.renderAttempts();
+  }
+
+  async listenChanged() {
+    const on = $("listen").checked;
+    if (on) {
+      try {
+        await this.listener.start(this.transport.ensureContext());
+        this.status("Listening. Press Play, then play along with the metronome.", 8000);
+      } catch (e) {
+        $("listen").checked = false;
+        this.status(e.name === "NotAllowedError" ? "Microphone access was refused — allow it in the address bar and tick Listen again."
+          : "Could not open the microphone: " + e.message, 0);
+        return;
+      }
+    } else {
+      this.listener.stop();
+      $("heard").textContent = "—";
+    }
+    // The piano is silent while listening so the microphone only hears the student.
+    this.transport.updateOptions({ voice_db: on ? -100 : -12 });
+  }
+
+  beginAttempt() {
+    if (!$("listen").checked || !this.listener.active || !this.lesson) return;
+    this.listener.beginAttempt();
+    this.attempt = { hands: this.transport.options.hands, tempo: this.transport.options.tempo, range: this.transport.sectionRange(), started: Date.now() };
+    this.score.markResults(null);
+  }
+
+  hear(division) {
+    // The detector reports a note ~80 ms after it starts (analysis window +
+    // three confirming frames); stamp heard notes that much earlier.
+    const spd = this.transport.rendered ? this.transport.rendered.seconds_per_division : 0;
+    const r = this.listener.sample(spd ? division - 0.08 / spd : division);
+    $("heard").innerHTML = r ? `${midiLabel(r.midi)}<small>${r.cents >= 0 ? "+" : ""}${r.cents.toFixed(0)} ¢</small>` : "—";
+  }
+
+  finishAttempt() {
+    if (!this.attempt) return;
+    const attempt = this.attempt;
+    this.attempt = null;
+    const events = this.listener.endAttempt(this.transport.position);
+    const hands = HANDS_FOR[attempt.hands] || ["R", "L"];
+    const ranking = rankAttempt(this.lesson, hands, events, attempt.range);
+    if (!ranking.targets) return;
+    // Ignore an attempt that was stopped almost at once.
+    const played = ranking.results.filter((r) => r.start < this.transport.position || r.hit).length;
+    if (!played && Date.now() - attempt.started < 3000) return;
+    this.showResult(ranking, attempt);
+    this.score.markResults(ranking);
+    this.saveAttempt(ranking, attempt);
+    this.showTab("practice");
+  }
+
+  showResult(r, attempt) {
+    const box = $("result");
+    box.hidden = false;
+    const stars = "★".repeat(r.stars) + "☆".repeat(5 - r.stars);
+    const timing = r.hits ? `${r.perfect} on time · ${r.good} close · ${r.hits - r.perfect - r.good} off · average ${r.meanAbs.toFixed(2)} beat${r.meanSigned > 0.05 ? " late" : r.meanSigned < -0.05 ? " early" : ""}` : "no notes matched";
+    const rows = r.missed.slice(0, 12).map((m) => `<tr><td>bar ${m.bar}</td><td class="miss">${m.midis.map(midiLabel).join(" ")}</td><td>${m.wrong !== null ? "heard " + midiLabel(m.wrong) : "not heard"}</td></tr>`).join("");
+    const weakBars = r.bars.filter((b) => b.hits < b.targets).map((b) => `bar ${b.bar} (${b.hits}/${b.targets})`).join(", ");
+    box.innerHTML = `
+      <div class="big"><span class="score">${r.score}</span><span class="stars">${stars}</span><span class="dim">${HANDS_LABEL[attempt.hands] || ""} · ${Math.round(attempt.tempo)} bpm</span></div>
+      <div><b>${r.hits} of ${r.targets}</b> notes played · ${r.extra ? r.extra + " extra" : "no extra"} · ${timing}</div>
+      <div>${r.verdict}</div>
+      ${weakBars ? `<div class="dim">Practise: ${weakBars}</div>` : ""}
+      ${rows ? `<table>${rows}${r.missed.length > 12 ? `<tr><td colspan="3" class="dim">… and ${r.missed.length - 12} more</td></tr>` : ""}</table>` : ""}`;
+  }
+
+  loadAttempts() {
+    try { return JSON.parse(localStorage.getItem(ATTEMPTS_KEY) || "{}"); } catch (_) { return {}; }
+  }
+
+  saveAttempt(r, attempt) {
+    const all = this.loadAttempts();
+    const key = this.lesson.name;
+    const list = all[key] || [];
+    list.unshift({ when: new Date().toISOString(), hands: attempt.hands, tempo: Math.round(attempt.tempo), score: r.score, stars: r.stars, hits: r.hits, targets: r.targets });
+    all[key] = list.slice(0, 50);
+    try { localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(all)); } catch (_) { /* ignore */ }
+    this.renderAttempts();
+  }
+
+  renderAttempts() {
+    const body = $("attempts").tBodies[0];
+    body.replaceChildren();
+    if (!this.lesson) return;
+    const list = this.loadAttempts()[this.lesson.name] || [];
+    const best = Math.max(0, ...list.map((a) => a.score));
+    for (const a of list) {
+      const tr = document.createElement("tr");
+      if (a.score === best && best > 0) tr.className = "best";
+      const when = new Date(a.when);
+      const cells = [when.toLocaleDateString() + " " + when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        HANDS_LABEL[a.hands] || a.hands, a.tempo + " bpm", `${a.score} (${a.hits}/${a.targets})`, "★".repeat(a.stars)];
+      for (const c of cells) { const td = document.createElement("td"); td.textContent = c; tr.appendChild(td); }
+      body.appendChild(tr);
     }
   }
 

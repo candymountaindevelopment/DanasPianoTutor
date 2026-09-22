@@ -25,6 +25,7 @@ input[type=number].bpm { width: 64px; }
 input[type=number].bar { width: 54px; }
 label { white-space: nowrap; }
 .dim { color: var(--text-dim); }
+a { color: var(--accent); }
 .spacer { flex: 1; }
 [hidden] { display: none !important; }
 .noscript { padding: 2em; }
@@ -62,6 +63,25 @@ label { white-space: nowrap; }
 .report { height: 110px; margin: 0; overflow: auto; font: 11.5px/1.35 Consolas, monospace; background: var(--panel); border: 1px solid var(--border); border-radius: 3px; padding: 6px; white-space: pre-wrap; }
 .report .warn { color: var(--warn); } .report .err { color: var(--error); }
 .status { padding: 3px 10px; border-top: 1px solid var(--border); color: var(--text-dim); min-height: 22px; }
+
+.practice-head { display: flex; align-items: center; gap: 10px; }
+.check { display: inline-flex; align-items: center; gap: 6px; }
+.heard { margin-left: auto; font-size: 20px; font-weight: 700; color: var(--accent); min-width: 60px; text-align: right; font-variant-numeric: tabular-nums; }
+.heard small { font-size: 11px; font-weight: 400; color: var(--text-dim); margin-left: 4px; }
+.result { padding: 8px 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 3px; }
+.result .big { display: flex; align-items: baseline; gap: 10px; }
+.result .score { font-size: 34px; font-weight: 700; color: var(--accent); }
+.result .stars { font-size: 20px; color: var(--warn); letter-spacing: 2px; }
+.result table { font-size: 12px; margin-top: 4px; }
+.result td, .result th { padding: 1px 8px 1px 0; text-align: left; border: none; }
+.result .miss { color: var(--error); }
+.log-box { flex: 1; min-height: 80px; overflow: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 3px; }
+#attempts { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+#attempts th, #attempts td { text-align: left; padding: 2px 8px; border-bottom: 1px solid var(--border); }
+#attempts th { color: var(--text-dim); font-weight: 600; position: sticky; top: 0; background: var(--panel); }
+#attempts tr.best td { color: var(--accent); }
+.score .note.miss .head { fill: var(--error) !important; }
+.score .note.wrong .head { fill: var(--warn) !important; }
 
 #feature-list h4 { margin: 10px 0 4px; color: var(--text-dim); font-size: 12px; text-transform: uppercase; }
 #feature-list label { display: block; white-space: normal; padding: 2px 0; }

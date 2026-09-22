@@ -79,6 +79,7 @@
       <nav class="tabs">
         <button data-tab="lesson" class="active" data-feature="view.lessonPanel">Lesson</button>
         <button data-tab="script" data-feature="tools.script">Script</button>
+        <button data-tab="practice" data-feature="play.listen">Practice</button>
         <button data-tab="settings" data-feature="app.settings">Settings</button>
       </nav>
       <div id="tab-lesson" class="tab">
@@ -94,6 +95,16 @@
         </div>
         <textarea id="script" spellcheck="false" wrap="off"></textarea>
         <pre id="report" class="report"></pre>
+      </div>
+      <div id="tab-practice" class="tab" hidden>
+        <div class="practice-head">
+          <label class="check"><input type="checkbox" id="listen"> <b>Listen</b> — score what I play</label>
+          <span id="heard" class="heard">—</span>
+        </div>
+        <p class="dim small">Tick Listen and press Play: the tutor plays the count-in and metronome, you play the notes, and the attempt is scored when it ends. One hand at a time scores best; use headphones or a quiet metronome so the microphone hears only the piano. <a href="listen/" target="_blank" rel="noopener">Check the microphone in Danas Ear.</a></p>
+        <div id="result" class="result" hidden></div>
+        <label class="dim">Attempts</label>
+        <div class="log-box"><table id="attempts"><thead><tr><th>When</th><th>Hands</th><th>Tempo</th><th>Score</th><th></th></tr></thead><tbody></tbody></table></div>
       </div>
       <div id="tab-settings" class="tab" hidden>
         <p class="dim">Turn parts of the app off or on. Choices are remembered in this browser; a link can fix them for a student.</p>

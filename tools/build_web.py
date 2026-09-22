@@ -118,12 +118,13 @@ def write_precache() -> None:
     files += sorted(p.relative_to(WEB).as_posix() for p in (WEB / "src").glob("*.js"))
     files += sorted(p.relative_to(WEB).as_posix() for p in (WEB / "assets").iterdir() if p.is_file())
     files += sorted(p.relative_to(WEB).as_posix() for p in (WEB / "lessons").glob("*.json"))
+    files += sorted("listen/" + p.name for p in (ROOT / "listen").iterdir() if p.is_file())
     vendor = WEB / "vendor"
     if vendor.exists():
         files += sorted(p.relative_to(WEB).as_posix() for p in vendor.rglob("*") if p.is_file() and p.suffix != ".txt")
     digest = hashlib.sha256()
     for rel in files:
-        path = WEB / rel
+        path = (ROOT / rel) if rel.startswith("listen/") else (WEB / rel)
         if path.is_file():
             digest.update(rel.encode())
             digest.update(path.read_bytes())

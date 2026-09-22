@@ -9,7 +9,9 @@ export class Transport {
     this.ctx = null;
     this.index = null;
     this.lesson = null;
-    this.options = { tempo: 80, hands: "both", metronome: true, count_in_bars: 1, loop_bars: null };
+    this.options = { tempo: 80, hands: "both", metronome: true, count_in_bars: 1, loop_bars: null, voice_db: -12 };
+    this.onPass = null;          // called with the pass number each time a loop wraps
+    this.pass = 0;
     this.loop = false;
     this.rendered = null;          // {samples, sampleRate, frames, count_in_seconds, ...}
     this.buffer = null;            // AudioBuffer: count-in + section
@@ -124,6 +126,7 @@ export class Transport {
     const division = fromDivision === null || fromDivision <= start ? start : this.barStart(fromDivision);
     const offset = countIn && division === start ? 0 : this.secondsAt(division);
     this.phase = "first";
+    this.pass = 0;
     this.offset = offset;
     this._startSource(this.buffer, false, offset);
     this.playing = true;
@@ -203,7 +206,10 @@ export class Transport {
     }
     if (this.phase === "loop") {
       const e = this.ctx.currentTime - this.startedAt;
-      pos = this.rendered.count_in_seconds + (e % Math.max(1e-6, this.section.duration));
+      const dur = Math.max(1e-6, this.section.duration);
+      const pass = Math.floor(e / dur) + 1;
+      if (pass !== this.pass) { this.pass = pass; if (this.onPass) this.onPass(pass); }
+      pos = this.rendered.count_in_seconds + (e % dur);
     }
     this.position = this.divisionAt(pos);
     this.emitPosition();

@@ -237,6 +237,20 @@ export class ScoreView {
     this.cursors = Array.from(svg.querySelectorAll(".system")).map((node, i) => ({ node: node.querySelector(".cursor"), system: page.systems[i] }));
     this.applyDim();
     this.setPosition(this.position, true);
+    this.markResults(this.results);
+  }
+
+  /* Colour missed targets (red) and wrong notes (amber) after an attempt. */
+  markResults(ranking) {
+    this.results = ranking || null;
+    if (!this.heads) return;
+    for (const h of this.heads) h.node.classList.remove("miss", "wrong");
+    if (!ranking) return;
+    for (const r of ranking.missed) {
+      for (const h of this.heads) {
+        if (h.start === r.start && r.midis.includes(+h.node.dataset.midi)) h.node.classList.add(r.wrong !== null ? "wrong" : "miss");
+      }
+    }
   }
 
   setDimHands(hands) { this.dimHands = hands; this.applyDim(); }

@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -196,6 +196,12 @@
         "feature": "`span` lesson key (5–8 white keys per hand, number or per hand): spreads finger resting spots, finger inference, resting-key tint and the drawn hands; Settings override for the drawn hands",
         "state": "done",
         "notes": "raw/teach/score.py finger_offsets, authoring._parse_span, round-trips; TestHandSpan"
+      },
+      {
+        "area": "web",
+        "feature": "Practice tab: microphone listening during playback (piano muted, metronome kept), attempt scored against the lesson — hits, per-note timing, extras, verdict, weak bars, wrong/missed notes coloured on the score, attempts history per lesson",
+        "state": "done",
+        "notes": "web/src/listen.js (shares listen/pitch.js), web/src/ranking.js (pure), transport voice_db + onPass; verified with a simulated student: perfect run 99, sloppy run 57 with the right misses found"
       }
     ],
     "examples": [
@@ -255,7 +261,7 @@
       "Left/right hand colour choice and colour-blind palette",
       "Lesson sets with progress tracking",
       "Export a lesson to the RAW main project as a PatternAsset",
-      "Rank an attempt: align Danas Ear note events with a lesson's notes (pitch, onset error, missed/extra) and score per bar"
+      "Polyphonic detection (chords) — needs a different algorithm or MIDI input"
     ]
   },
   "architecture": {
@@ -421,6 +427,14 @@
       {
         "path": "web/src/palms.js",
         "role": "Hand placement timeline from fingering + span; glide; state at a division"
+      },
+      {
+        "path": "web/src/listen.js",
+        "role": "Listener: microphone/injected node → YIN → NoteTracker stamped with transport divisions"
+      },
+      {
+        "path": "web/src/ranking.js",
+        "role": "rankAttempt: targets by onset, tolerance matching, timing stats, score/stars/verdict"
       }
     ],
     "changes_to_existing_raw_code": [
@@ -593,6 +607,19 @@
         "Lesson key `span` (5–8): raw/teach/score.py finger_offsets spreads resting keys; inference, hand_position and web summary use it; authoring parses, clamps with warnings and round-trips it.",
         "Settings: switch show.palms; 'Hand span' override (remembered in the browser). Keyboard row 150 px.",
         "docs/LESSON_FORMAT.md documents span; 3 new tests (439)."
+      ]
+    },
+    {
+      "date": "2026-09-22",
+      "version": "1.4.0",
+      "type": "feature",
+      "summary": "Practice mode: listen through the microphone and score the attempt",
+      "changes": [
+        "web/src/listen.js: Listener on the transport's AudioContext (mic or injected node), NoteTracker stamped with lesson divisions, 80 ms detection latency compensated.",
+        "web/src/ranking.js: onset groups as targets (chords/both hands = one target), ±0.75 beat matching, perfect/close/off tiers, mean signed error (early/late), extras, score = 70 % accuracy + 30 % timing − extras, stars, verdict, per-bar summary, wrong-note attribution.",
+        "Transport: voice_db option (piano muted while listening), pass counter with onPass so loop passes score separately.",
+        "Practice tab (feature play.listen): Listen switch, live heard note, result card, attempts table (localStorage, best highlighted); missed/wrong noteheads coloured on the score.",
+        "build: listen/ files precached; Kiosk preset hides Practice."
       ]
     }
   ]
