@@ -18,15 +18,22 @@ export const isWhite = (midi) => WHITE.has(midi % 12);
 const WHITE_INDEX = { 0: 0, 1: 0.5, 2: 1, 3: 1.5, 4: 2, 5: 3, 6: 3.5, 7: 4, 8: 4.5, 9: 5, 10: 5.5, 11: 6 };
 const whiteIndex = (midi) => Math.floor(midi / 12) * 7 + WHITE_INDEX[midi % 12];
 
+/* Size the backing store to the canvas box × device pixel ratio.
+ *
+ * The box is clamped to the window: a canvas that ends up sized by its own
+ * backing store (a missing or stale stylesheet) would otherwise grow by the
+ * ratio on every frame until the browser refuses to paint it. */
+const MAX_SIDE = 8192;
+
 function setupCanvas(canvas) {
-  const dpr = window.devicePixelRatio || 1;
-  const w = canvas.clientWidth, h = canvas.clientHeight;
-  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-  }
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  const w = Math.max(1, Math.min(canvas.clientWidth, window.innerWidth));
+  const h = Math.max(1, Math.min(canvas.clientHeight, window.innerHeight));
+  if (canvas.clientWidth > w || canvas.clientHeight > h) { canvas.style.width = w + "px"; canvas.style.height = h + "px"; }
+  const bw = Math.min(MAX_SIDE, Math.round(w * dpr)), bh = Math.min(MAX_SIDE, Math.round(h * dpr));
+  if (canvas.width !== bw || canvas.height !== bh) { canvas.width = bw; canvas.height = bh; }
   const ctx = canvas.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setTransform(bw / w, 0, 0, bh / h, 0, 0);
   return [ctx, w, h];
 }
 

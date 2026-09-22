@@ -28,7 +28,21 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
+  const url = new URL(req.url);
+  // Big, immutable things stay cache-first; the app's own files are checked
+  // against the network first so a new build is never half-applied.
+  const immutable = url.pathname.includes("/vendor/") || url.pathname.endsWith("core.zip");
   event.respondWith((async () => {
+    if (!immutable) {
+      try {
+        const fresh = await fetch(req);
+        if (fresh && fresh.ok && fresh.type === "basic") {
+          const names = (await caches.keys()).filter((n) => n.startsWith("dpt-"));
+          if (names.length) (await caches.open(names[names.length - 1])).put(req, fresh.clone());
+          return fresh;
+        }
+      } catch (_) { /* offline: fall through to the cache */ }
+    }
     const cached = await caches.match(req, { ignoreSearch: true });
     if (cached) return cached;
     const response = await fetch(req);

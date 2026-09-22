@@ -30,11 +30,6 @@ async function ensureContext() {
     state.analyser = state.ctx.createAnalyser();
     state.analyser.fftSize = FFT;
     state.analyser.smoothingTimeConstant = 0;
-    // An analyser with no output is not always processed; pull it silently.
-    const sink = state.ctx.createGain();
-    sink.gain.value = 0;
-    state.analyser.connect(sink);
-    sink.connect(state.ctx.destination);
   }
   if (state.ctx.state === "suspended") await state.ctx.resume();
 }
@@ -168,18 +163,37 @@ function addEvent(e) {
 
 /* -------------------------------------------------------------- drawing */
 
-/* Size the backing store to the CSS box × device pixel ratio. The CSS box
- * must come from the stylesheet: a canvas sized only by its attributes
- * would grow by the ratio on every frame. */
-function fit(canvas) {
-  const r = canvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
-  if (w > 8192 || h > 8192) throw new Error(`canvas #${canvas.id} is not CSS-sized (${w}×${h})`);
+/* Size a canvas from its container, never from itself.
+ *
+ * A canvas whose CSS size comes from its own backing store grows by the
+ * device pixel ratio on every frame (1 → 1.25 → 1.56 …) until the browser
+ * refuses to paint it. So the layout size is taken from the parent element
+ * and written to the canvas as an inline style first; the backing store
+ * then follows. `cssHeight` fixes the height for a canvas whose row is
+ * sized by its content. This does not depend on the stylesheet, so a
+ * stale cached CSS file cannot bring the runaway back. */
+const MAX_SIDE = 8192;
+
+function fit(canvas, cssHeight) {
+  const box = canvas.parentElement;
+  if (box && !cssHeight && canvas.style.position !== "absolute") {
+    // Take the canvas out of the flow so its own size can never feed back
+    // into the box that is measured to size it.
+    if (getComputedStyle(box).position === "static") box.style.position = "relative";
+    canvas.style.position = "absolute";
+    canvas.style.top = canvas.style.left = "0";
+  }
+  const width = Math.max(1, Math.min(MAX_SIDE, box ? box.clientWidth : canvas.clientWidth));
+  const height = Math.max(1, Math.min(MAX_SIDE, cssHeight || (box ? box.clientHeight : canvas.clientHeight)));
+  canvas.style.width = width + "px";
+  canvas.style.height = height + "px";
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  const w = Math.max(1, Math.min(MAX_SIDE, Math.round(width * dpr)));
+  const h = Math.max(1, Math.min(MAX_SIDE, Math.round(height * dpr)));
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   const g = canvas.getContext("2d");
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  return [g, r.width, r.height];
+  g.setTransform(w / width, 0, 0, h / height, 0, 0);
+  return [g, width, height];
 }
 
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -202,7 +216,7 @@ function draw() {
 }
 
 function drawCents(cents) {
-  const c = $("cents"), [g, w, h] = fit(c);
+  const c = $("cents"), [g, w, h] = fit(c, 56);
   g.clearRect(0, 0, w, h);
   const x0 = 10, x1 = w - 10, mid = (x0 + x1) / 2, y = h * 0.55;
   g.fillStyle = "rgba(79,209,165,0.15)";

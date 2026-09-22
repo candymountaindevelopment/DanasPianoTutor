@@ -28,7 +28,7 @@
       <div class="readout panel">
         <div class="note"><span id="note-name">—</span><sub id="note-oct"></sub></div>
         <div class="meter">
-          <canvas id="cents" width="600" height="70"></canvas>
+          <canvas id="cents"></canvas>
           <div class="meter-labels"><span>−50 ¢</span><span>0</span><span>+50 ¢</span></div>
         </div>
         <div class="facts">
@@ -39,9 +39,9 @@
           <div><span class="dim">MIDI</span><b id="midi">—</b></div>
         </div>
       </div>
-      <canvas id="trace" class="panel"></canvas>
-      <canvas id="scope" class="panel"></canvas>
-      <canvas id="keys" class="panel"></canvas>
+      <div class="panel trace-box"><canvas id="trace"></canvas></div>
+      <div class="panel scope-box"><canvas id="scope"></canvas></div>
+      <div class="panel keys-box"><canvas id="keys"></canvas></div>
     </section>
 
     <aside class="right">

@@ -27,11 +27,6 @@ export class Listener {
     this.analyser = ctx.createAnalyser();
     this.analyser.fftSize = FFT;
     this.analyser.smoothingTimeConstant = 0;
-    // An analyser with no output is not always processed; pull it silently.
-    const sink = ctx.createGain();
-    sink.gain.value = 0;
-    this.analyser.connect(sink);
-    sink.connect(ctx.destination);
   }
 
   async start(ctx) {
