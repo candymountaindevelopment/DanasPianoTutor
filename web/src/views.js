@@ -15,6 +15,8 @@ const BLACK_AFTER = { 0: 1, 1: 3, 3: 6, 4: 8, 5: 10 };
 
 export const noteName = (midi) => NOTE_NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
 export const isWhite = (midi) => WHITE.has(midi % 12);
+const WHITE_INDEX = { 0: 0, 1: 0.5, 2: 1, 3: 1.5, 4: 2, 5: 3, 6: 3.5, 7: 4, 8: 4.5, 9: 5, 10: 5.5, 11: 6 };
+const whiteIndex = (midi) => Math.floor(midi / 12) * 7 + WHITE_INDEX[midi % 12];
 
 function setupCanvas(canvas) {
   const dpr = window.devicePixelRatio || 1;
@@ -40,6 +42,8 @@ export class Keyboard {
     this.settings = settings;
     this.low = 48; this.octaves = 3;
     this.marks = {};
+    this.palms = {};            // hand -> state from palms.handState, or null
+    this.dim = [];              // hands that are muted
     this.onKey = null;
     canvas.addEventListener("click", (e) => {
       if (!this.onKey || !this.settings.get("play.clickKeys")) return;
@@ -62,6 +66,7 @@ export class Keyboard {
   }
 
   setMarks(marks) { this.marks = marks; this.draw(); }
+  update(marks, palms, dim) { this.marks = marks; this.palms = palms || {}; this.dim = dim || []; this.draw(); }
 
   whiteRects(w, h) {
     const count = 7 * this.octaves, kw = w / count, out = [];
@@ -105,7 +110,9 @@ export class Keyboard {
       ctx.fillRect(x, y, bw, bh);
       ctx.strokeStyle = "#000"; ctx.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1);
     }
-    if (!this.settings.get("show.keyFingers")) return;
+    const palms = this.settings.get("show.palms") && Object.values(this.palms).some(Boolean);
+    if (palms) for (const hand of ["L", "R"]) if (this.palms[hand]) this.drawPalm(ctx, w, h, this.palms[hand]);
+    if (!this.settings.get("show.keyFingers") || palms) return;   // fingertips carry the numbers
     const size = Math.max(8, Math.min(13, h / 7));
     ctx.font = `bold ${size}px Segoe UI, sans-serif`; ctx.textBaseline = "middle";
     for (const [m, x, y, kw, kh] of [...blacks, ...whites]) {
@@ -120,6 +127,52 @@ export class Keyboard {
     ctx.textBaseline = "alphabetic";
   }
 }
+
+/* One hand seen from above: a translucent palm at the near edge of the
+ * keys with five fingers reaching up to their resting keys; a finger that is
+ * playing reaches further, onto the key, and shows its number. */
+Keyboard.prototype.drawPalm = function (ctx, w, h, state) {
+  const kw = w / (7 * this.octaves);
+  const base = whiteIndex(this.low);
+  const xOf = (wi) => (wi - base) * kw + kw / 2;
+  const hand = state.hand, dim = this.dim.includes(hand);
+  const color = dim ? HAND_DIM[hand] : HAND_COLOR[hand];
+  const fingers = state.offsets.map((o, k) => ({ x: xOf(state.anchor + o), number: hand === "R" ? k + 1 : 5 - k }));
+  const fw = Math.max(9, Math.min(kw * 0.6, 22));
+  const palmTop = h * 0.76, palmBottom = h + 14;
+  const left = Math.min(...fingers.map((f) => f.x)) - fw * 0.9, right = Math.max(...fingers.map((f) => f.x)) + fw * 0.9;
+  ctx.save();
+  ctx.globalAlpha = dim ? 0.35 : 0.55;
+  ctx.fillStyle = color; ctx.strokeStyle = "#0d1013"; ctx.lineWidth = 1;
+  roundRect(ctx, left, palmTop, right - left, palmBottom - palmTop, Math.min(14, (right - left) / 3));
+  ctx.fill(); ctx.stroke();
+  for (const f of fingers) {
+    const midi = state.pressed[f.number];
+    const thumb = f.number === 1;
+    let tip;
+    if (midi !== undefined) tip = isWhite(midi) ? h * 0.30 : h * 0.10;
+    else tip = thumb ? h * 0.60 : h * (0.42 + 0.03 * Math.abs(f.number - 3));
+    const y0 = palmTop + 4;
+    ctx.globalAlpha = midi !== undefined ? 0.95 : dim ? 0.35 : 0.6;
+    ctx.fillStyle = color;
+    roundRect(ctx, f.x - fw / 2, tip, fw, y0 - tip + fw / 2, fw / 2);
+    ctx.fill(); ctx.stroke();
+    if (midi !== undefined || this.settings.get("show.keyFingers")) {
+      ctx.globalAlpha = 1;
+      const r = fw * 0.42;
+      ctx.beginPath(); ctx.arc(f.x, tip + fw / 2, r, 0, Math.PI * 2);
+      ctx.fillStyle = midi !== undefined ? "#f4f6f8" : "rgba(244,246,248,0.75)"; ctx.fill();
+      ctx.fillStyle = "#0d1013"; ctx.font = `bold ${Math.max(8, Math.min(12, r * 1.5))}px Segoe UI, sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(String(f.number), f.x, tip + fw / 2 + 0.5);
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "#0d1013"; ctx.font = `bold ${Math.max(9, Math.min(12, fw * 0.7))}px Segoe UI, sans-serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(hand === "R" ? "R" : "L", (left + right) / 2, h - 7);
+  ctx.restore();
+};
 
 function shade(hex, factor) {
   const n = parseInt(hex.slice(1), 16);

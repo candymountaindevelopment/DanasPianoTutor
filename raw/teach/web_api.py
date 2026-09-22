@@ -66,6 +66,7 @@ def lesson_summary(lesson: Lesson, warnings: list[str]) -> dict:
         "measures": lesson.measures, "length": lesson.length,
         "measure_divisions": lesson.measure_divisions, "beat_divisions": lesson.beat_divisions,
         "midi_range": [lo, hi], "positions": positions,
+        "span": {hand: lesson.span.get(hand, 5) for hand in HANDS},
         "notes": [_note_dict(n) for n in lesson.notes],
         "warnings": [w for w in warnings if f"[{lesson.name}]" in w],
     }

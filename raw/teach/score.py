@@ -154,6 +154,17 @@ def is_white(midi: int) -> bool:
     return int(midi) % 12 in WHITE_PITCH_CLASSES
 
 
+MIN_SPAN, MAX_SPAN, DEFAULT_SPAN = 5, 8, 5
+
+
+def finger_offsets(span: int) -> list[int]:
+    """White-key offset of each of the five fingers from the hand's lowest
+    key, for a hand that comfortably covers `span` white keys. Span 5 is the
+    five-finger position (0 1 2 3 4); a wider span spreads the fingers out."""
+    span = max(MIN_SPAN, min(MAX_SPAN, int(span)))
+    return [int(i * (span - 1) / 4 + 0.5) for i in range(5)]
+
+
 def white_key_offset(midi: int, steps: int) -> int:
     """The white key `steps` white keys away (negative = downwards)."""
     m = int(midi)
@@ -217,6 +228,8 @@ class Lesson:
     notes: list[Note] = field(default_factory=list)
     # The lowest key of each hand's five-finger span, when the author gave one.
     position: dict[str, int | None] = field(default_factory=lambda: {RIGHT: None, LEFT: None})
+    # White keys each hand comfortably reaches (5 = one per finger).
+    span: dict[str, int] = field(default_factory=lambda: {RIGHT: DEFAULT_SPAN, LEFT: DEFAULT_SPAN})
     # Hand -> (notes string, fingers string) as written, kept for round-tripping.
     source: dict[str, dict] = field(default_factory=dict)
     step: str = DEFAULT_STEP
@@ -304,10 +317,11 @@ class Lesson:
         given = self.position.get(hand)
         if given is not None:
             return int(given)
+        offsets = finger_offsets(self.span.get(hand, DEFAULT_SPAN))
         for note in sorted(self.hand_notes(hand), key=lambda n: n.start):
             if note.finger:
-                down = note.finger - 1 if hand == RIGHT else 5 - note.finger
-                return white_key_offset(note.midi, -down)
+                index = note.finger - 1 if hand == RIGHT else 5 - note.finger
+                return white_key_offset(note.midi, -offsets[index])
         return None
 
     def position_keys(self, hand: str) -> list[int] | None:
@@ -316,7 +330,7 @@ class Lesson:
         low = self.hand_position(hand)
         if low is None:
             return None
-        return [white_key_offset(low, i) for i in range(5)]
+        return [white_key_offset(low, i) for i in finger_offsets(self.span.get(hand, DEFAULT_SPAN))]
 
     def position_label(self, hand: str) -> str:
         keys = self.position_keys(hand)
@@ -345,17 +359,18 @@ class Lesson:
         unplaced: list[str] = []
         for hand in HANDS:
             low = self.position.get(hand)
+            offsets = finger_offsets(self.span.get(hand, DEFAULT_SPAN))
             missing = 0
             for note in sorted(self.hand_notes(hand), key=lambda n: (n.start, n.midi)):
                 note.inferred = None
                 if note.finger:
-                    down = note.finger - 1 if hand == RIGHT else 5 - note.finger
-                    low = white_key_offset(note.midi, -down)
+                    index = note.finger - 1 if hand == RIGHT else 5 - note.finger
+                    low = white_key_offset(note.midi, -offsets[index])
                     continue
                 if low is None:
                     missing += 1
                     continue
-                keys = [white_key_offset(low, i) for i in range(5)]
+                keys = [white_key_offset(low, i) for i in offsets]
                 if note.midi in keys:
                     index = keys.index(note.midi)
                     note.inferred = index + 1 if hand == RIGHT else 5 - index

@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -184,6 +184,18 @@
         "feature": "Danas Ear: standalone browser app that reads pitch from the microphone (YIN), shows note/cents/Hz, pitch trace, waveform, keyboard, note-event log with JSON download and 'copy as script' quantised to a tempo; test tone for setup without a mic",
         "state": "done",
         "notes": "listen/{index.html,styles.css,pitch.js,app.js}; verified in headless Chrome with a synthetic tone (sub-cent accuracy) and the fake media device"
+      },
+      {
+        "area": "web",
+        "feature": "Moving hands on the keyboard: translucent palms with five fingers glide so each note's finger lands on its key; pressing fingers extend and show their number; driven purely by the playback division (deterministic, scriptable)",
+        "state": "done",
+        "notes": "web/src/palms.js (timeline + glide), Keyboard.drawPalm in views.js; switch show.palms"
+      },
+      {
+        "area": "lessons",
+        "feature": "`span` lesson key (5–8 white keys per hand, number or per hand): spreads finger resting spots, finger inference, resting-key tint and the drawn hands; Settings override for the drawn hands",
+        "state": "done",
+        "notes": "raw/teach/score.py finger_offsets, authoring._parse_span, round-trips; TestHandSpan"
       }
     ],
     "examples": [
@@ -405,6 +417,10 @@
       {
         "path": "listen/app.js",
         "role": "Microphone / test tone → analyser → readout, cents meter, trace, scope, keyboard, log"
+      },
+      {
+        "path": "web/src/palms.js",
+        "role": "Hand placement timeline from fingering + span; glide; state at a division"
       }
     ],
     "changes_to_existing_raw_code": [
@@ -431,7 +447,7 @@
     ],
     "tests": {
       "command": "python -m unittest discover -s tests",
-      "total": 436,
+      "total": 439,
       "tutor_file": "tests/test_teach.py",
       "tutor_cases": 29,
       "covers": [
@@ -564,6 +580,19 @@
         "Exports: JSON download; 'Copy as script' quantises events to a tempo as a RAW notes line.",
         "Test tone (triangle oscillator into the same analyser) for checking the setup and for scripted verification.",
         "tools/serve_web.py --listen; build_web --dist copies listen/ to dist/listen/; Caddyfile allows the microphone on /listen/* only."
+      ]
+    },
+    {
+      "date": "2026-09-22",
+      "version": "1.3.0",
+      "type": "feature",
+      "summary": "Moving hands on the keyboard and hand span",
+      "changes": [
+        "web/src/palms.js: per-hand placement timeline (anchor = key of the note minus the finger's offset), nearest-finger choice for unfingered notes, smooth glide over the beat before a shift, pressed fingers from sounding notes.",
+        "Keyboard draws two palms with five fingers over the keys; pressing fingers reach onto the key (further for black keys) and carry the finger number; muted hand drawn dim. Key finger discs are hidden while palms are shown.",
+        "Lesson key `span` (5–8): raw/teach/score.py finger_offsets spreads resting keys; inference, hand_position and web summary use it; authoring parses, clamps with warnings and round-trips it.",
+        "Settings: switch show.palms; 'Hand span' override (remembered in the browser). Keyboard row 150 px.",
+        "docs/LESSON_FORMAT.md documents span; 3 new tests (439)."
       ]
     }
   ]

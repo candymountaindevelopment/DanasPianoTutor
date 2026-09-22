@@ -6,6 +6,7 @@ import { Bridge } from "./bridge.js";
 import { Transport } from "./transport.js";
 import { ScoreView } from "./score.js";
 import { Keyboard, Hands, Lane, COLORS } from "./views.js";
+import { handTimeline, handState, MIN_SPAN, MAX_SPAN } from "./palms.js";
 import { Settings, FEATURES, PRESETS } from "./settings.js";
 import { download, wavBlob, makeShareLink, readShareLink, store, printLesson } from "./exports.js";
 
@@ -218,6 +219,7 @@ class App {
     this.lane.setLesson(lesson);
     this.hands.setLesson(lesson);
     this.keys.fit(lesson);
+    this.buildPalms();
     this.showInfo(lesson);
     this.updateTitle();
     await this.score.setLesson(i, lesson);
@@ -278,10 +280,22 @@ class App {
     }
   }
 
+  /* Hand span in white keys: the Settings override, else the lesson's own. */
+  spanFor(hand) {
+    const override = parseInt($("span").value, 10);
+    if (override >= MIN_SPAN && override <= MAX_SPAN) return override;
+    return (this.lesson && this.lesson.span && this.lesson.span[hand]) || MIN_SPAN;
+  }
+
+  buildPalms() {
+    this.palms = this.lesson ? { R: handTimeline(this.lesson, "R", this.spanFor("R")), L: handTimeline(this.lesson, "L", this.spanFor("L")) } : null;
+  }
+
   refreshKeys(division = this.transport.position) {
     const lesson = this.lesson;
-    if (!lesson) { this.keys.setMarks({}); return; }
+    if (!lesson) { this.keys.update({}, {}, []); return; }
     const hands = HANDS_FOR[this.transport.options.hands] || ["R", "L"];
+    const dim = ["R", "L"].filter((h) => !hands.includes(h));
     const marks = {};
     if (this.settings.get("show.restingHands")) {
       for (const h of hands) {
@@ -293,7 +307,12 @@ class App {
     for (const n of lesson.notes) {
       if (hands.includes(n.hand) && n.start <= division && division < n.start + n.duration) marks[n.midi] = [HAND_COLOR[n.hand], n.shown ? String(n.shown) : ""];
     }
-    this.keys.setMarks(marks);
+    const palms = {};
+    if (this.palms && this.settings.get("show.palms")) {
+      const d = Math.max(0, division);
+      for (const h of ["R", "L"]) palms[h] = handState(this.palms[h], d, lesson.beat_divisions);
+    }
+    this.keys.update(marks, palms, dim);
   }
 
   /* ------------------------------------------------------- transport */
@@ -505,6 +524,14 @@ class App {
       presets.value = "";
     };
     $("btn-reset-settings").onclick = () => this.settings.reset();
+    try { $("span").value = localStorage.getItem("dpt.span") || ""; } catch (_) { /* ignore */ }
+    $("span").onchange = () => {
+      const v = parseInt($("span").value, 10);
+      $("span").value = v >= MIN_SPAN && v <= MAX_SPAN ? String(v) : "";
+      try { localStorage.setItem("dpt.span", $("span").value); } catch (_) { /* ignore */ }
+      this.buildPalms();
+      this.refreshKeys();
+    };
     $("btn-settings-link").onclick = async () => {
       try { await navigator.clipboard.writeText(this.settings.shareUrl()); this.status("Link with these switches copied"); }
       catch (_) { this.status(this.settings.shareUrl(), 0); }

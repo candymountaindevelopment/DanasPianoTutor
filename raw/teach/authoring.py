@@ -34,7 +34,10 @@ from ..export.sheet import WHOLE, musical_to_divisions
 from ..patterns.notes import parse_pitch_token, token_kind
 from . import voice as voices
 from .score import (
+    DEFAULT_SPAN,
     DEFAULT_STEP,
+    MAX_SPAN,
+    MIN_SPAN,
     DEFAULT_TEMPO,
     LEFT,
     RIGHT,
@@ -48,7 +51,7 @@ from .score import (
 
 LESSON_KEYS = {
     "name", "title", "composer", "tempo", "time", "key", "level", "step",
-    "instructions", "tips", "voice", "right", "left", "position", "tags", "description",
+    "instructions", "tips", "voice", "right", "left", "position", "span", "tags", "description",
 }
 HAND_KEYS = {"notes", "fingers", "velocity"}
 TOP_KEYS = {"format", "version", "project", "slots", "sounds", "instruments", "patterns", "lessons"}
@@ -277,6 +280,29 @@ def _parse_position(value, label: str, warnings: list[str]) -> dict[str, int | N
     return out
 
 
+def _parse_span(value, label: str, warnings: list[str]) -> dict[str, int]:
+    """`span`: white keys a hand comfortably covers — a number for both hands
+    or {"right": 6, "left": 5}. 5 (one key per finger) when absent."""
+    out = {RIGHT: DEFAULT_SPAN, LEFT: DEFAULT_SPAN}
+    if value is None:
+        return out
+    if not isinstance(value, dict):
+        value = {"right": value, "left": value}
+    for key, hand in (("right", RIGHT), ("left", LEFT)):
+        if value.get(key) is None:
+            continue
+        try:
+            span = int(value[key])
+        except (TypeError, ValueError):
+            warnings.append(f"{label}.span.{key}: {value[key]!r} is not a number of white keys; using {DEFAULT_SPAN}")
+            continue
+        if not MIN_SPAN <= span <= MAX_SPAN:
+            warnings.append(f"{label}.span.{key}: {span} is outside {MIN_SPAN}..{MAX_SPAN}; clamped")
+            span = max(MIN_SPAN, min(MAX_SPAN, span))
+        out[hand] = span
+    return out
+
+
 def _hand_spec(value, label: str, warnings: list[str]) -> dict:
     if value is None:
         return {}
@@ -335,6 +361,7 @@ def parse_lesson(spec: dict, label: str, warnings: list[str], instruments: dict 
         lesson.voice = "piano"
 
     lesson.position = _parse_position(spec.get("position"), label, warnings)
+    lesson.span = _parse_span(spec.get("span"), label, warnings)
 
     for key, hand in (("right", RIGHT), ("left", LEFT)):
         hspec = _hand_spec(spec.get(key), f"{label}.{key}", warnings)
@@ -513,6 +540,9 @@ def lesson_to_author(lesson: Lesson) -> dict:
                                                   ("left", lesson.position.get(LEFT))) if v is not None}
     if position:
         out["position"] = position
+    if any(v != DEFAULT_SPAN for v in lesson.span.values()):
+        r, l = lesson.span.get(RIGHT, DEFAULT_SPAN), lesson.span.get(LEFT, DEFAULT_SPAN)
+        out["span"] = r if r == l else {"right": r, "left": l}
     for key, hand in (("right", RIGHT), ("left", LEFT)):
         hand_doc = hand_to_author(lesson, hand)
         if hand_doc is not None:

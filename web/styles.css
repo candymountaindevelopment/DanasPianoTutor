@@ -37,8 +37,8 @@ label { white-space: nowrap; }
 
 .columns { flex: 1; display: grid; grid-template-columns: minmax(0, 3fr) minmax(320px, 1fr); gap: 6px; padding: 6px; min-height: 0; }
 .columns:has(.right[hidden]) { grid-template-columns: 1fr; }
-.left { display: grid; grid-template-rows: minmax(0, 1fr) 150px 120px; gap: 6px; min-width: 0; min-height: 0; }
-.left:has(.lane[hidden]) { grid-template-rows: minmax(0, 1fr) 120px; }
+.left { display: grid; grid-template-rows: minmax(0, 1fr) 150px 150px; gap: 6px; min-width: 0; min-height: 0; }
+.left:has(.lane[hidden]) { grid-template-rows: minmax(0, 1fr) 150px; }
 .left:has(.keys[hidden]) { grid-template-rows: minmax(0, 1fr) 150px; }
 .left:has(.lane[hidden]):has(.keys[hidden]) { grid-template-rows: minmax(0, 1fr); }
 .score-box { overflow: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 3px; }

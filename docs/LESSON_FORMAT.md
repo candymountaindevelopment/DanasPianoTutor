@@ -51,6 +51,7 @@ stages). Everything except `name` and at least one hand has a default.
 | `key` | string | `"C"` | `C G D A E B F# Db Ab Eb Bb F` or minors `Am Em …`; sets the key signature and how notes are spelled |
 | `level` | 1–5 | 1 | 1 = first lessons (five-finger position, quarter and half notes) |
 | `position` | object | derived | `{"right": "C4", "left": "C3"}` — the **lowest key** of each hand's five-finger span (see §5) |
+| `span` | 5–8 or object | 5 | white keys a hand comfortably covers: `6`, or `{"right": 6, "left": 5}` — spreads the fingers and the drawn hand (see §5) |
 | `instructions` | string | `""` | what to practise, in one or two sentences |
 | `tips` | list of strings | built-in | posture / practice tips shown beside the score |
 | `voice` | string | `"piano"` | `piano`, `music_box`, `organ`, `chip`, or the name of an instrument in this document (§7) |
@@ -137,6 +138,21 @@ show it before the piece starts:
 ```json
 "position": {"right": "C4", "left": "C3"}
 ```
+
+**Hand span.** By default a hand covers five white keys, one under each
+finger. A student with a bigger reach, or a piece that keeps a stretched
+hand, can say how many white keys the hand comfortably covers:
+
+```json
+"span": 6                          "span": {"right": 8, "left": 5}
+```
+
+The fingers spread over the span — for 6 keys they rest on keys 1 2 4 5 6,
+for 8 on 1 3 5 6 8 — and both the finger inference and the **moving hands on
+the keyboard** follow: the palm glides so that the finger written (or
+inferred) for each note lands on its key, during the last beat before the
+note. The Settings tab can override the span for the drawn hands without
+changing the lesson.
 
 Notes that have no finger *and* fall outside the current position are reported
 (`… 3 note(s) have no finger number and are outside the hand position`): add a

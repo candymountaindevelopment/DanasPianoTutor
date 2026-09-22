@@ -18,6 +18,7 @@ export const FEATURES = [
   { id: "show.restingHands",  group: "Fingering", label: "Resting hand position on the keys",   default: true },
   { id: "show.nextFinger",    group: "Fingering", label: "Outline the next finger in the hand diagram", default: true },
   { id: "show.laneFingers",   group: "Fingering", label: "Finger numbers in the note lane",     default: true },
+  { id: "show.palms",         group: "Fingering", label: "Moving hands on the keyboard (the palm glides so each finger lands on its key)", default: true },
   // Playback controls
   { id: "play.tempo",         group: "Playback", label: "Tempo control (off = lesson tempo only)", default: true },
   { id: "play.hands",         group: "Playback", label: "Hands selector (right / left alone)",  default: true },

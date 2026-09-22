@@ -442,3 +442,48 @@ class TestWebApi(unittest.TestCase):
         self.assertIn("raw/teach/web_api.py", names)
         self.assertIn("raw/synth/engine.py", names)
         self.assertFalse([n for n in names if n.startswith("raw/ui/") or n.startswith("raw/app/")])
+
+
+class TestHandSpan(unittest.TestCase):
+    """`span`: how many white keys a hand comfortably covers."""
+
+    def test_offsets(self):
+        from raw.teach.score import finger_offsets
+
+        self.assertEqual(finger_offsets(5), [0, 1, 2, 3, 4])
+        self.assertEqual(finger_offsets(6), [0, 1, 3, 4, 5])
+        self.assertEqual(finger_offsets(8), [0, 2, 4, 5, 7])
+        self.assertEqual(finger_offsets(99), finger_offsets(8))
+
+    def test_span_spreads_the_resting_keys_and_round_trips(self):
+        from raw.teach.authoring import lesson_to_author, parse_lesson_document
+
+        doc = json.dumps({"format": "raw.author", "version": 1, "lessons": [{
+            "name": "wide", "title": "Wide", "span": {"right": 8, "left": 5},
+            "position": {"right": "C4", "left": "C3"},
+            "right": "C4(1) E4 G4 A4 C5(5)", "left": "C3(5) G3(1)"}]})
+        result = parse_lesson_document(json.loads(doc))
+        self.assertTrue(result.ok, result.errors)
+        les = result.lessons[0]
+        self.assertEqual(les.span, {"R": 8, "L": 5})
+        self.assertEqual(les.position_keys("R"), [60, 64, 67, 69, 72])   # C E G A C
+        self.assertEqual([n.shown_finger for n in les.hand_notes("R")], [1, 2, 3, 4, 5])
+        self.assertEqual(les.position_keys("L"), [48, 50, 52, 53, 55])
+        again = lesson_to_author(les)
+        self.assertEqual(again["span"], {"right": 8, "left": 5})
+        self.assertNotIn("warning", "".join(result.warnings).lower())
+
+    def test_span_number_and_bad_values(self):
+        from raw.teach.authoring import parse_lesson_document
+
+        result = parse_lesson_document(({"format": "raw.author", "version": 1, "lessons": [
+            {"name": "a", "title": "A", "span": 6, "right": "C4(1) D4"},
+            {"name": "b", "title": "B", "span": {"right": 12, "left": "wide"}, "right": "C4(1)"}]}))
+        self.assertEqual(result.lessons[0].span, {"R": 6, "L": 6})
+        self.assertEqual(result.lessons[1].span, {"R": 8, "L": 5})
+        self.assertTrue(any("span.right" in w and "clamped" in w for w in result.warnings))
+        self.assertTrue(any("span.left" in w for w in result.warnings))
+        from raw.teach import web_api
+        parsed = json.loads(web_api.parse(json.dumps({"format": "raw.author", "version": 1, "lessons": [
+            {"name": "a", "title": "A", "span": 6, "right": "C4(1) D4"}]})))
+        self.assertEqual(parsed["lessons"][0]["span"], {"R": 6, "L": 6})
