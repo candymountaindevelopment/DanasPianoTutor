@@ -3,7 +3,7 @@
     "title": "Danas Piano Tutor — technical status",
     "format": "raw.status",
     "version": 1,
-    "updated": "2026-09-21",
+    "updated": "2026-09-22",
     "maintainer_note": "Hand-maintained. Update 'status' when features change and append to 'changelog' for every change; the repository has no git history, so this file is the record.",
     "related": [
       "docs/TECHNICAL.md#14.5",
@@ -620,6 +620,16 @@
         "Transport: voice_db option (piano muted while listening), pass counter with onPass so loop passes score separately.",
         "Practice tab (feature play.listen): Listen switch, live heard note, result card, attempts table (localStorage, best highlighted); missed/wrong noteheads coloured on the score.",
         "build: listen/ files precached; Kiosk preset hides Practice."
+      ]
+    },
+    {
+      "date": "2026-09-22",
+      "version": "1.4.1",
+      "type": "docs",
+      "summary": "TECHNICAL.md brought up to date",
+      "changes": [
+        "New sections 14.6 (browser build: worker protocol, SVG score, transport, palms, feature switches, offline/deploy/hardening, canvas sizing) and 14.7 (Danas Ear, practice mode, ranking).",
+        "Repository layout, header, hand span in 14.5, testing counts (439) and the roadmap updated."
       ]
     }
   ]

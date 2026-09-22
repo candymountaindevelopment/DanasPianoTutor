@@ -1,6 +1,7 @@
 # Retro Audio Workstation — Technical Documentation
 
-Version 0.2.0 · project format v2 · authoring format `raw.author` v1
+Version 0.2.0 · project format v2 · authoring format `raw.author` v1 ·
+Piano Tutor 1.4.0 (desktop and browser)
 
 This document describes how the application is built: its data model, the
 synthesis and rendering pipeline, the command/undo system, the file formats it
@@ -8,7 +9,9 @@ reads and writes, the UI architecture, and how the pieces are tested. It is
 written for someone who has to modify or extend the code. For the user-facing
 overview see [README.md](../README.md); for step-by-step recipes for adding
 oscillators, filters, asset types and docks see [EXTENDING.md](../EXTENDING.md);
-for the chatbot-facing authoring language see [AUTHORING_FORMAT.md](AUTHORING_FORMAT.md).
+for the chatbot-facing authoring language see [AUTHORING_FORMAT.md](AUTHORING_FORMAT.md);
+for the lesson dialect see [LESSON_FORMAT.md](LESSON_FORMAT.md) and for the
+deployment plan of the browser build [WEB_PLAN.md](WEB_PLAN.md).
 
 ---
 
@@ -98,22 +101,34 @@ raw/
 ├── export/              game_pack.py, sheet.py
 ├── patterns/            notes.py, renderer.py, chords.py
 ├── teach/               score.py, authoring.py, voice.py, player.py, engrave.py,
-│                        sheet.py, main.py  (Piano Tutor, §14.5)
+│                        sheet.py, web_api.py, main.py  (Piano Tutor, §14.5)
 ├── synth/               engine.py, trajectory.py, timestructure.py, oscillator.py,
 │                        envelope.py, drift.py, filters.py
 └── ui/                  main_window.py, timeline.py, asset_manager.py, synth_dock.py,
                          timestructure_dock.py, sample_lab.py, sample_fx.py,
                          chord_lab.py, piano.py, console_dock.py, import_dialog.py,
                          waveform.py, dnd.py, theme.py, teach/ (tutor window)
+web/                     Piano Tutor in the browser (§14.6); src/*.js, index.html,
+                         styles.css, sw.js; core.zip, lessons/, assets/, vendor/
+                         and precache.json are build outputs (git-ignored)
+listen/                  Danas Ear, the microphone pitch listener (§14.7)
+tools/                   build_web.py, serve_web.py, check_headers.py
+deploy/                  Caddyfile, cloudflared.yml (self-hosting, §14.6.6)
+.github/workflows/       pages.yml — builds dist/ and publishes to GitHub Pages
 docs/
 ├── TECHNICAL.md         this file
 ├── AUTHORING_FORMAT.md  chatbot brief (its examples are parsed by the tests)
 ├── LESSON_FORMAT.md     the same for Piano Tutor lessons
+├── WEB_PLAN.md          browser architecture, hardening, go-live checklist
+├── PIANO_TUTOR_STATUS.json   machine-readable status: features, modules, changelog
 ├── raw_author_schema.json
 └── examples/            *.author.json, *.musicxml, lessons/*.json
 tests/                   test_*.py (unittest)
 assets/                  demo audio shipped with the repo
 ```
+
+The desktop app needs PyQt6; everything under `raw/` that the browser build
+packs (§14.6.1) imports with **numpy alone**, which `test_teach` asserts.
 
 ## 5. Data model
 
@@ -717,6 +732,7 @@ raw/teach/
 │                 count-in, bar range; per-note render cache
 ├── engrave.py    layout of a grand staff in staff-space units (no Qt)
 ├── sheet.py      lesson -> MusicXML through export/sheet.build_musicxml
+├── web_api.py    JSON/bytes facade for the browser build (§14.6.2)
 └── main.py       entry point
 raw/ui/teach/
 ├── painter.py    draws an engrave.Layout with QPainter (screen and print)
@@ -732,10 +748,18 @@ Design points:
   down lengthens every note musically (`duration` override) instead of
   resampling. `Lesson.length` is padded to whole measures.
 - **Fingering inference.** `Lesson.resolve_fingers()` walks each hand in time,
-  moving a five-finger position whenever a written finger implies one, and
-  fills `Note.inferred` for unfingered notes under the hand. The score shows
+  moving the hand position whenever a written finger implies one, and fills
+  `Note.inferred` for unfingered notes under the hand. The score shows
   inferred fingers in grey and only where they change; MusicXML export can
   include or omit them.
+- **Hand span.** `Lesson.span` (per hand, 5–8 white keys, lesson key `span`)
+  decides where the five fingers rest: `score.finger_offsets(span)` returns
+  their white-key offsets from the hand's lowest key — `[0,1,2,3,4]` for the
+  five-finger position, `[0,2,4,5,7]` for a hand covering eight. Position
+  derivation, `position_keys`, `finger_for`, the inference above and the drawn
+  hands in the browser (§14.6.4) all read the same offsets, so a lesson cannot
+  say one thing and show another. Values outside the range are clamped with a
+  warning and the key round-trips through `lesson_to_author`.
 - **Spelling.** `score.spell(midi, fifths, prefer)` spells in-key notes as the
   key signature does, honours an accidental the author typed (`Bb4` stays a
   B-flat in C major), then prefers naturals, then the key's own accidental
@@ -765,6 +789,202 @@ Design points:
 Tests: `tests/test_teach.py` (parser, fingering inference, examples parse with
 zero warnings, render timing, engraving geometry, MusicXML content, a window
 test under the offscreen platform including PDF output).
+
+## 14.6 Piano Tutor in the browser (`web/`)
+
+The same tutor as a web page with nothing installed. **The Python core is not
+ported**: `raw/teach` and the synth run inside the visitor's browser under
+Pyodide (CPython compiled to WebAssembly) in a Web Worker, so parsing,
+fingering inference, synthesis and engraving are the very same code as on the
+desktop. Only the Qt layer is rewritten in JavaScript. The server hands out
+static files and runs nothing.
+
+```
+web/
+├── index.html      shell: splash, toolbar, transport, views, tabs, dialogs
+├── styles.css      dark palette shared with the desktop theme; @media print
+├── sw.js           service worker: precache + network-first for app files
+└── src/
+    ├── app.js      boot, wiring, tabs, lesson panel, practice flow
+    ├── bridge.js   promise RPC to the worker
+    ├── worker.js   Pyodide boot, core.zip unpack, ops
+    ├── transport.js Web Audio playback, position, two-stage loop
+    ├── score.js    layout JSON -> SVG (Bravura), cursor, print pages
+    ├── views.js    Canvas keyboard, hand diagram, note lane
+    ├── palms.js    moving hands on the keyboard (§14.6.4)
+    ├── settings.js feature switches, presets, URL overrides (§14.6.5)
+    ├── listen.js   microphone -> YIN, stamped with lesson divisions (§14.7.2)
+    ├── ranking.js  score an attempt against the lesson (§14.7.3)
+    └── exports.js  downloads, WAV encoder, share links, storage, print
+```
+
+### 14.6.1 Build
+
+`tools/build_web.py` produces everything the page loads:
+
+| step | output |
+|---|---|
+| `build_core_zip()` | `web/core.zip` — every `raw/**/*.py` except `raw/ui/` and `raw/app/` (41 modules, 94 KB) |
+| `copy_lessons()` | `web/lessons/*.json` and an index; each example is parsed first and skipped if it does not load |
+| `copy_assets()` | splash photo, `LESSON_FORMAT.md` (the in-app help), `about.json` |
+| `--vendor` | `web/vendor/`: pinned Pyodide 0.27.7, the numpy wheel, Bravura and its licence. Downloaded once, never from a CDN at runtime |
+| `write_precache()` | `precache.json`: the file list and a SHA-256 over their contents, which is the service-worker cache version |
+| `--dist` | a clean servable tree in `dist/` (16 MB), refusing loose `.py`, unexpected JSON or files over 20 MB, with `listen/` copied in at `/listen/` |
+
+### 14.6.2 Worker protocol
+
+`raw/teach/web_api.py` is the only surface the browser calls — module-level
+functions taking and returning JSON (plus one raw `bytes` for samples), so
+there is nothing to inject into:
+
+| call | returns |
+|---|---|
+| `parse(text)` | `{ok, lessons: [summary…], warnings, errors}`; a summary carries notes, positions, `span`, measure/beat divisions and midi range |
+| `render(index, options)` | metadata; `last_samples()` then yields the float32 buffer, transferred to the main thread |
+| `note_preview(index, midi)` | one note, for click-a-key |
+| `engrave_json(index, width_sp, …)` | the engraver's layout (systems, noteheads, stems, ties, fingers, texts) |
+| `musicxml(index, inferred)` / `to_author(index)` | export strings |
+
+`bridge.js` wraps each in a promise with an id; `worker.js` unpacks `core.zip`
+into Pyodide's filesystem and dispatches. Rendering happens off the UI thread,
+so the score keeps scrolling while a new tempo is rendered.
+
+### 14.6.3 Score, transport and print
+
+The engraver's layout JSON is drawn as an inline `<svg>` with one `<g>` per
+system, using **Bravura** (SMuFL) for noteheads, clefs, rests, flags and time
+signatures — the glyph-origin convention means a clef is a `<text>` node on
+its staff line. The same drawing prints: `@media print` swaps to black ink and
+`exports.printLesson` re-engraves at page width, trims the last page to its
+content and appends the handout (instructions, hand positions, tips).
+
+Playback is Web Audio, not `<audio>`: the rendered buffer feeds an
+`AudioBufferSourceNode` and the position is `ctx.currentTime - startedAt`,
+which is sample-accurate (better than the desktop's wall clock). Looping keeps
+the desktop's two-stage scheme — count-in plus first pass as one buffer, then
+the section alone with `loop = true` — and a pass counter drives `onPass`, so
+each repetition can be scored separately (§14.7). Browsers need a gesture
+before audio starts; the splash click is that gesture.
+
+### 14.6.4 Moving hands (`palms.js`)
+
+For each hand a placement timeline is built from the lesson alone: every note
+group's *anchor* is the white-key index of its key minus the offset of the
+finger that plays it (written, or inferred, or — for an unfingered note out of
+reach — the nearest finger, which moves the hand). `handState(timeline, d)`
+returns the anchor at division `d`, gliding with a smoothstep over the beat
+before a shift, plus the fingers currently pressing. The keyboard view draws a
+translucent palm with five fingers; a pressing finger reaches onto its key
+(further for a black key) and carries its number. Because the state is a pure
+function of the division, scrubbing, looping and playing all agree, and the
+drawing never disagrees with the fingering on the score.
+
+### 14.6.5 Feature switches
+
+`settings.js` holds a registry of 30 switches in five groups (Views,
+Fingering, Playback, Tools, App). `Settings.get(id)` gates both the DOM
+(`[data-feature]` elements are hidden) and behaviour: a hidden control falls
+back to a neutral value — no tempo control means the lesson tempo, no loop
+means the whole piece. Choices live in `localStorage`; `?preset=kiosk`,
+`?off=a,b` and `?on=a,b` fix them for a pupil (fixed switches render locked),
+and `?reset` — like **Ctrl+Shift+S** and *About → Reset app settings* — is the
+way back out of a preset that hid the Settings tab. Presets: *Everything*,
+*Student*, *Kiosk*, *Teacher*.
+
+### 14.6.6 Offline, deployment and hardening
+
+`sw.js` precaches the file list from `precache.json` under a cache named for
+its content hash and deletes older caches on activation, so the app (including
+the 17 MB runtime) works offline after the first visit. The big immutable
+files (`vendor/`, `core.zip`) are served cache-first; **the app's own files are
+fetched network-first** with a cache fallback, so a new build can never be
+half-applied from a stale cache — the failure mode that once produced a
+runaway canvas from a mismatched stylesheet (§14.6.7).
+
+Two deployments are supported:
+
+- **GitHub Pages** — `.github/workflows/pages.yml` runs the tutor tests,
+  vendors the runtime (cached between runs), builds `dist/` and publishes it on
+  every push to `main`. Pages cannot send custom headers; the app needs none.
+- **Self-hosted** — `deploy/Caddyfile` serves `dist/` on loopback behind a
+  Cloudflare Tunnel (`deploy/cloudflared.yml`, outbound only, no open ports)
+  with CSP `default-src 'none'; script-src 'self' 'wasm-unsafe-eval'` —
+  `wasm-unsafe-eval` is the single relaxation Pyodide needs — plus HSTS,
+  nosniff, `no-referrer`, COOP/CORP, and `microphone=(self)` **only** on
+  `/listen/*`. `tools/check_headers.py <url>` asserts those headers, the
+  content types of the runtime files, and that nothing private (tests,
+  sources, `.git`) is reachable. `tools/serve_web.py` is the development
+  server and sends the same headers, so anything that would break under the
+  real CSP breaks locally first.
+
+### 14.6.7 Canvas sizing
+
+Every Canvas view sizes its backing store to its box times
+`devicePixelRatio`. A canvas whose *layout* size comes from its own backing
+store therefore grows by that ratio on each redraw (1 → 1.25 → 1.56 …) until
+the browser stops painting it. Canvases take their size from a wrapper element
+and are positioned out of the flow, so the loop cannot form even with a
+missing stylesheet, and both dimensions are clamped as a backstop. Tested at
+ratios 1, 1.25, 1.5 and 2, and with the stylesheet stripped.
+
+## 14.7 Listening and ranking (`listen/`, `web/src/listen.js`, `ranking.js`)
+
+### 14.7.1 Danas Ear
+
+`listen/` is a standalone page — no Pyodide, plain JavaScript — that shows the
+pitch the microphone hears: note, cents, hertz, clarity, level, a 12-second
+pitch trace, a waveform, a keyboard, and a log of note events downloadable as
+JSON or copyable as a RAW notes line quantised to a tempo. It is served beside
+the tutor at `/listen/`, opened by the tutor's **Ear** button, and is the only
+path granted the microphone by the Caddyfile.
+
+`listen/pitch.js` is shared by both apps:
+
+- `detectPitch(buf, rate)` — **YIN** (de Cheveigné and Kawahara, 2002):
+  squared difference function over a 2048-sample window, cumulative-mean
+  normalisation, first dip under 0.15 (else the global minimum if it is under
+  0.5), parabolic interpolation. Range 40–2000 Hz. Returns `{hz, clarity}`,
+  clarity being `1 - d(tau)`.
+- `NoteTracker` — turns per-frame readings into note events: three consecutive
+  frames of the same note start one, four silent or different frames end it,
+  and the event's pitch is the median of its frames.
+- `selftest()` — a synthetic 220 Hz tone with two harmonics must come back as
+  A3 within 2 cents; it runs in the browser console and in the scripted checks.
+
+### 14.7.2 Practice mode
+
+Ticking **Listen** in the tutor's Practice tab opens the microphone on the
+*transport's* `AudioContext` (one clock for both) and sets `voice_db` to -100,
+so the piano is muted while the count-in and metronome keep playing. Each
+animation frame the app samples the analyser at the current division and feeds
+`NoteTracker`, minus 80 ms — the detector's reaction time (analysis window plus
+three confirming frames) — so heard notes carry the division they were played
+at. Because time is in divisions, tempo changes need no conversion.
+
+### 14.7.3 Ranking
+
+`ranking.rankAttempt(lesson, hands, events, range)` is pure:
+
+- **Targets** are lesson notes grouped by onset, within the played hands and
+  bar range. The detector is monophonic, so a chord or a two-hand onset is one
+  target, hit if any of its keys was heard.
+- **Matching** takes the nearest unused event of the right pitch within
+  ±0.75 beat; tiers are ≤0.15 beat *on time*, ≤0.35 *close*, beyond that
+  *off*. Unmatched events near a missed target are reported as the wrong note
+  played.
+- **Score** is `70 % accuracy + 30 % accuracy × timing - extras`, with a
+  capped contribution for extras, mapped to 0–100 and five stars; the verdict
+  adds the mean *signed* error as "you tend to play late" or "you rush".
+- The result also carries per-bar hit counts (the bars to practise) and the
+  misses, which `score.markResults` colours on the staff — red for not heard,
+  amber for a different note. Attempts are kept per lesson in `localStorage`
+  with the best highlighted.
+
+Limits worth knowing: monophonic detection makes two-hand scoring approximate
+(the tab says so); a loud metronome through speakers can be heard as a note;
+and piano resonance in a live room narrows the usable gate range. MIDI input
+(Web MIDI, already allowed by `midi=(self)`) would remove all three and is the
+natural next step.
 
 ## 15. User interface (`raw/ui`)
 
@@ -846,7 +1066,7 @@ from a newer build loads with a note and unknown data preserved.
 
 ## 17. Testing
 
-`tests/` (unittest, 430 tests):
+`tests/` (unittest, 439 tests):
 
 | file | covers |
 |---|---|
@@ -858,7 +1078,15 @@ from a newer build loads with a note and unknown data preserved.
 | `test_sample_lab`, `test_sample_fx`, `test_fit_to_bars`, `test_time_effects` | slicing, effect order, normalize-last, tape stretch exactness, delay/reverb/denoise/sustain behaviour |
 | `test_chord_lab` | chord tables, ceiling limiter, bake freshness |
 | `test_sheet` | MusicXML structure, voices, ties, round-trip reader |
-| `test_teach` | Piano Tutor: lesson parser, fingering inference, examples, player timing, engraving, MusicXML with fingering, window + PDF |
+| `test_teach` | Piano Tutor: lesson parser, fingering inference, hand `span`, examples, player timing, engraving, MusicXML with fingering, window + PDF; `web_api` parse/render/engrave/MusicXML, the core importing without Qt, and `build_web` packing only the core |
+
+The browser layer is JavaScript and outside unittest; it is checked by driving
+headless Chrome over the DevTools protocol under the production CSP — boot,
+engraving, playback and looping, script apply, print layout, service-worker
+cache, canvas sizing at four device pixel ratios, palm timelines and glide,
+`rankAttempt` against synthetic attempts, and a simulated student played into
+the listener (a clean run scores 99; a run with a skipped note, two wrong notes
+and 0.375 beat of lateness scores 57 and names exactly those notes).
 
 UI tests construct the real widgets under an offscreen `QApplication` and drive
 them through their public methods.
@@ -880,6 +1108,9 @@ Not built:
   folder) and a relocate-missing-file dialog.
 - Timeline → sheet export (only patterns and chords), key signatures other than
   C, fingering/dynamics in MusicXML.
+- Beams in the engraver: eighths and sixteenths get flags.
+- **Polyphonic** pitch detection: practice scoring hears one note at a time
+  (§14.7.3). MIDI input (Web MIDI) is the intended answer.
 - Zero-crossing snapping in Sample Lab; clip fades/crop/automation on the
   timeline.
 - MIDI import/export.
