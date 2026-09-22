@@ -1,0 +1,20 @@
+{
+  "format": "raw.author",
+  "version": 1,
+  "lessons": [
+    {
+      "name": "ode_to_joy",
+      "title": "Ode to Joy",
+      "composer": "L. van Beethoven",
+      "tempo": 96,
+      "time": "4/4",
+      "key": "C",
+      "level": 2,
+      "position": {"right": "C4", "left": "C3"},
+      "instructions": "The whole melody sits in the right hand's C position. Bars 4 and 8 have a dotted rhythm, long-short: count 'one-and-two-and' and play the short note on the 'and' of two.",
+      "tips": ["Play the repeated notes evenly — same finger, same weight.", "The left hand alternates between C (finger 5) and G (thumb)."],
+      "right": {"notes": "E4(3) E4 F4(4) G4(5) | G4 F4 E4 D4(2) | C4(1) C4 D4 E4 | E4:1.5 D4:1/8 D4:2 | E4 E4 F4 G4 | G4 F4 E4 D4 | C4 C4 D4 E4 | D4:1.5 C4:1/8 C4:2"},
+      "left":  {"notes": "C3(5):4 | G3(1):2 G3:2 | C3:4 | G3:2 C3:2 | C3:4 | G3:2 G3:2 | C3:4 | G3:2 C3:2"}
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "format": "raw.author",
+  "version": 1,
+  "project": {"name": "G Minor Slow Piece", "tempo": 60},
+  "instruments": [
+    {
+      "name": "chip_piano",
+      "oscillator": "triangle",
+      "pitch": "C4",
+      "root_note": "C4",
+      "duration": 0.9,
+      "amplitude": 0.75,
+      "envelope": [0.004, 0.25, 0.45, 0.5],
+      "brightness": 0.45,
+      "drift": 0.08,
+      "stretch": "preserve_attack",
+      "filters": [{"type": "lowpass", "cutoff": 3200, "resonance": 0.7}],
+      "tags": ["melody"]
+    },
+    {
+      "name": "chip_inner",
+      "oscillator": "square",
+      "duty": 0.125,
+      "pitch": "C4",
+      "root_note": "C4",
+      "duration": 0.45,
+      "amplitude": 0.55,
+      "envelope": [0.003, 0.12, 0.3, 0.18],
+      "brightness": 0.38,
+      "drift": 0.12,
+      "stretch": "preserve_attack",
+      "filters": [{"type": "lowpass", "cutoff": 2200, "resonance": 0.6}],
+      "tags": ["harmony"]
+    },
+    {
+      "name": "chip_bass",
+      "oscillator": "triangle",
+      "pitch": "C2",
+      "root_note": "C2",
+      "duration": 1.6,
+      "amplitude": 0.85,
+      "envelope": [0.005, 0.4, 0.55, 0.6],
+      "brightness": 0.22,
+      "drift": 0.06,
+      "stretch": "preserve_attack",
+      "filters": [{"type": "lowpass", "cutoff": 800, "resonance": 0.6}],
+      "tags": ["bass"]
+    }
+  ],
+  "patterns": [
+    {
+      "name": "pattern_gm_a",
+      "description": "Section A: 3/4 at 60 BPM, i-VI-III-VII in G minor, eight bars.",
+      "tempo": 60,
+      "steps": 48,
+      "step": "1/8",
+      "tracks": [
+        {
+          "name": "melody",
+          "instrument": "chip_piano",
+          "overrides": {"volume_db": -8},
+          "notes": "D4 - - Bb3 - . | Eb4 - - - - . | D4 - - F4 - . | C4 - - - - . | G4 - - F4 - . | Eb4 - - D4 - . | C4 - - D4 - . | D4 - - - - ."
+        },
+        {
+          "name": "inner",
+          "instrument": "chip_inner",
+          "overrides": {"volume_db": -13},
+          "notes": ". G3 Bb3 . G3 Bb3 | . G3 Bb3 . G3 Bb3 | . F3 Bb3 . F3 Bb3 | . F3 A3 . F3 A3 | . G3 Bb3 . G3 Bb3 | . G3 Bb3 . G3 Bb3 | . Eb3 G3 . Eb3 G3 | . F#3 A3 . F#3 A3"
+        },
+        {
+          "name": "bass",
+          "instrument": "chip_bass",
+          "overrides": {"volume_db": -7},
+          "notes": "G2 - - - - . | Eb2 - - - - . | Bb1 - - - - . | F2 - - - - . | G2 - - - - . | Eb2 - - - - . | C2 - - - - . | D2 - - - - ."
+        }
+      ]
+    },
+    {
+      "name": "pattern_gm_b",
+      "description": "Section B: 4/4 at 80 BPM, low ostinato alone, no melody.",
+      "tempo": 80,
+      "steps": 32,
+      "step": "1/8",
+      "tracks": [
+        {
+          "name": "ostinato",
+          "instrument": "chip_bass",
+          "overrides": {"volume_db": -5},
+          "notes": "G2 - Bb2 - C3 - Bb2 - | G2 - Bb2 - D3 - C3 - | G2 - Bb2 - C3 - Eb3 - | D3 - C3 - Bb2 - G2 -"
+        }
+      ]
+    }
+  ]
+}

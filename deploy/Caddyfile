@@ -1,0 +1,56 @@
+# Danas Piano Tutor — static server behind a Cloudflare Tunnel.
+# Serves dist/ only, on the loopback interface; cloudflared forwards to it.
+# See docs/WEB_PLAN.md §5.2–5.4.
+
+{
+	admin off
+	auto_https off
+}
+
+http://127.0.0.1:8080 {
+	root * /srv/tutor/dist
+	encode zstd gzip
+	file_server {
+		hide .* *.py
+	}
+
+	header {
+		Content-Security-Policy "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: blob:; media-src blob:; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), midi=(self)"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		-Server
+	}
+
+	# Danas Ear at /listen/ needs the microphone; nothing else does.
+	@listen path /listen /listen/*
+	header @listen Permissions-Policy "camera=(), microphone=(self), geolocation=(), payment=(), usb=(), midi=(self)"
+
+	# Long-lived, content-addressed things; the rest re-validates.
+	@immutable path /vendor/* /core.zip /assets/tutor_splash.jpg
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+	@volatile path / /index.html /sw.js /precache.json
+	header @volatile Cache-Control "no-cache"
+
+	# Proper types for the parts browsers are strict about.
+	@wasm path *.wasm
+	header @wasm Content-Type "application/wasm"
+	@woff2 path *.woff2
+	header @woff2 Content-Type "font/woff2"
+
+	handle_errors {
+		respond "{err.status_code} {err.status_text}" {err.status_code}
+	}
+
+	log {
+		output file /var/log/caddy/tutor.log {
+			roll_size 10MiB
+			roll_keep 4
+			roll_keep_for 672h
+		}
+		format json
+	}
+}

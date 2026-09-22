@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.vscode/
+.idea/
+
+# Generated and cache data must never be required to open a project.
+cache/
+exports/
+*.raw.json.tmp
+
+# Browser build outputs: rebuilt by tools/build_web.py (and by the Pages workflow).
+dist/
+web/vendor/
+web/core.zip
+web/lessons/
+web/assets/
+web/precache.json

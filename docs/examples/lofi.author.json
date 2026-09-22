@@ -1,0 +1,200 @@
+{
+  "format": "raw.author",
+  "version": 1,
+  "project": {"name": "Lofi Sketch", "tempo": 76},
+  "instruments": [
+    {
+      "name": "lofi_keys",
+      "description": "Dusty electric-piano chord stab. Slow tape wow, rolled-off top.",
+      "oscillator": "triangle",
+      "pitch": "C4",
+      "root_note": "C4",
+      "duration": 0.9,
+      "amplitude": 0.5,
+      "envelope": [0.008, 0.22, 0.4, 0.45],
+      "brightness": 0.3,
+      "drift": {"amount": 0.35, "lfo_hz": 0.7, "pitch_depth": 0.25, "noise_floor": 0.004},
+      "stretch": "preserve_attack",
+      "filters": [
+        {"type": "lowpass", "cutoff": 1500, "resonance": 0.8},
+        {"type": "emphasis", "center": 420, "width": 1.6, "amount": 4},
+        {"type": "bitcrush", "bits": 10},
+        {"type": "sr_reduce", "target_rate": 16000}
+      ],
+      "tags": ["music", "keys"]
+    },
+    {
+      "name": "lofi_bass",
+      "description": "Round sub. Nothing above 400 Hz.",
+      "oscillator": "triangle",
+      "pitch": "C2",
+      "root_note": "C2",
+      "duration": 0.8,
+      "amplitude": 0.7,
+      "envelope": [0.006, 0.18, 0.55, 0.25],
+      "brightness": 0.2,
+      "drift": {"amount": 0.2, "lfo_hz": 0.6, "pitch_depth": 0.15},
+      "stretch": "preserve_attack",
+      "filters": [{"type": "lowpass", "cutoff": 380, "resonance": 0.7}],
+      "tags": ["music", "bass"]
+    },
+    {
+      "name": "lofi_kick",
+      "description": "Soft thud, no click.",
+      "oscillator": "sine",
+      "pitch": {"from": 130, "to": 42, "curve": "exponential"},
+      "root_note": "C2",
+      "duration": 0.26,
+      "amplitude": 0.85,
+      "envelope": [0.004, 0.1, 0.2, 0.12],
+      "brightness": 0.2,
+      "drift": 0.08,
+      "filters": [{"type": "lowpass", "cutoff": 260, "resonance": 0.9}],
+      "tags": ["music", "drums"]
+    },
+    {
+      "name": "lofi_snare",
+      "description": "Brushed, dark, slightly crushed.",
+      "oscillator": "white",
+      "pitch": 900,
+      "duration": 0.22,
+      "amplitude": 0.7,
+      "envelope": [0.002, 0.07, 0.18, 0.13],
+      "brightness": 0.3,
+      "drift": 0.15,
+      "filters": [
+        {"type": "highpass", "cutoff": 250, "resonance": 0.7},
+        {"type": "lowpass", "cutoff": 2600, "resonance": 0.8},
+        {"type": "bitcrush", "bits": 8}
+      ],
+      "tags": ["music", "drums"]
+    },
+    {
+      "name": "lofi_hat",
+      "description": "Tiny, tucked well under everything.",
+      "oscillator": "white",
+      "pitch": 8000,
+      "duration": 0.06,
+      "amplitude": 0.4,
+      "envelope": [0.001, 0.025, 0.1, 0.03],
+      "brightness": 0.5,
+      "drift": 0.2,
+      "filters": [
+        {"type": "highpass", "cutoff": 7000, "resonance": 0.7},
+        {"type": "bitcrush", "bits": 9}
+      ],
+      "tags": ["music", "drums"]
+    },
+    {
+      "name": "lofi_vinyl",
+      "description": "One bar of surface noise. Retriggered with a new seed each bar.",
+      "oscillator": "white",
+      "pitch": 1000,
+      "duration": 3.16,
+      "amplitude": 0.09,
+      "envelope": [0.05, 0.0, 1.0, 0.05],
+      "brightness": 0.5,
+      "drift": 0.0,
+      "stretch": "uniform",
+      "filters": [
+        {"type": "highpass", "cutoff": 1200, "resonance": 0.6},
+        {"type": "lowpass", "cutoff": 6000, "resonance": 0.6}
+      ],
+      "tags": ["music", "texture"]
+    }
+  ],
+  "patterns": [
+    {
+      "name": "pattern_lofi",
+      "description": "Fmaj7 - Em7 - Dm7 - Cmaj7, four bars, swung eighths at 76 BPM.",
+      "tempo": 76,
+      "steps": 32,
+      "step": "1/8",
+      "swing": 0.34,
+      "tracks": [
+        {
+          "name": "keys",
+          "instrument": "lofi_keys",
+          "overrides": {"volume_db": -15},
+          "events": [
+            {"step": 0, "note": "F3", "length": 3.5, "velocity": 0.85},
+            {"step": 0, "note": "A3", "length": 3.5, "velocity": 0.8},
+            {"step": 0, "note": "C4", "length": 3.5, "velocity": 0.78},
+            {"step": 0, "note": "E4", "length": 3.5, "velocity": 0.7},
+            {"step": 5, "note": "A3", "length": 2, "velocity": 0.5},
+            {"step": 5, "note": "C4", "length": 2, "velocity": 0.48},
+            {"step": 5, "note": "E4", "length": 2, "velocity": 0.44},
+
+            {"step": 8, "note": "E3", "length": 3.5, "velocity": 0.85},
+            {"step": 8, "note": "G3", "length": 3.5, "velocity": 0.8},
+            {"step": 8, "note": "B3", "length": 3.5, "velocity": 0.78},
+            {"step": 8, "note": "D4", "length": 3.5, "velocity": 0.7},
+            {"step": 13, "note": "G3", "length": 2, "velocity": 0.5},
+            {"step": 13, "note": "B3", "length": 2, "velocity": 0.48},
+            {"step": 13, "note": "D4", "length": 2, "velocity": 0.44},
+
+            {"step": 16, "note": "D3", "length": 3.5, "velocity": 0.85},
+            {"step": 16, "note": "F3", "length": 3.5, "velocity": 0.8},
+            {"step": 16, "note": "A3", "length": 3.5, "velocity": 0.78},
+            {"step": 16, "note": "C4", "length": 3.5, "velocity": 0.7},
+            {"step": 21, "note": "F3", "length": 2, "velocity": 0.5},
+            {"step": 21, "note": "A3", "length": 2, "velocity": 0.48},
+            {"step": 21, "note": "C4", "length": 2, "velocity": 0.44},
+
+            {"step": 24, "note": "C3", "length": 3.5, "velocity": 0.85},
+            {"step": 24, "note": "E3", "length": 3.5, "velocity": 0.8},
+            {"step": 24, "note": "G3", "length": 3.5, "velocity": 0.78},
+            {"step": 24, "note": "B3", "length": 3.5, "velocity": 0.7},
+            {"step": 29, "note": "E3", "length": 2, "velocity": 0.5},
+            {"step": 29, "note": "G3", "length": 2, "velocity": 0.48},
+            {"step": 29, "note": "B3", "length": 2, "velocity": 0.44}
+          ]
+        },
+        {
+          "name": "bass",
+          "instrument": "lofi_bass",
+          "overrides": {"volume_db": -10},
+          "events": [
+            {"step": 0, "note": "F2", "length": 3, "velocity": 0.9},
+            {"step": 6, "note": "C3", "length": 1.5, "velocity": 0.65},
+            {"step": 8, "note": "E2", "length": 3, "velocity": 0.9},
+            {"step": 14, "note": "B2", "length": 1.5, "velocity": 0.65},
+            {"step": 16, "note": "D2", "length": 3, "velocity": 0.9},
+            {"step": 22, "note": "A2", "length": 1.5, "velocity": 0.65},
+            {"step": 24, "note": "C2", "length": 3, "velocity": 0.9},
+            {"step": 30, "note": "G2", "length": 1.5, "velocity": 0.65}
+          ]
+        },
+        {
+          "name": "kick",
+          "instrument": "lofi_kick",
+          "overrides": {"volume_db": -8},
+          "notes": "x . . . . x . . | x . . . . x . . | x . . . . x . . | x . . . . x . ."
+        },
+        {
+          "name": "snare",
+          "instrument": "lofi_snare",
+          "overrides": {"volume_db": -3},
+          "notes": ". . X . . . X . | . . X . . . X . | . . X . . . X . | . . X . . . x ."
+        },
+        {
+          "name": "hat",
+          "instrument": "lofi_hat",
+          "overrides": {"volume_db": -14},
+          "notes": "X x x x X x x x | X x x x X x x x | X x x x X x x x | X x x x X x x x"
+        },
+        {
+          "name": "vinyl",
+          "instrument": "lofi_vinyl",
+          "overrides": {"volume_db": -8},
+          "events": [
+            {"step": 0},
+            {"step": 8, "overrides": {"seed_offset": 1}},
+            {"step": 16, "overrides": {"seed_offset": 2}},
+            {"step": 24, "overrides": {"seed_offset": 3}}
+          ]
+        }
+      ]
+    }
+  ]
+}

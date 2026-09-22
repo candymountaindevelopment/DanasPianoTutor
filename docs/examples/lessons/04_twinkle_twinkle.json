@@ -1,0 +1,20 @@
+{
+  "format": "raw.author",
+  "version": 1,
+  "lessons": [
+    {
+      "name": "twinkle_twinkle",
+      "title": "Twinkle, Twinkle, Little Star",
+      "composer": "Traditional",
+      "tempo": 88,
+      "time": "4/4",
+      "key": "C",
+      "level": 2,
+      "position": {"right": "C4", "left": "C3"},
+      "instructions": "C position, but the A in bar two is one key above it: stretch finger 5 up to A and bring it back to G. Everything else stays under the hand.",
+      "tips": ["When finger 5 reaches for A, keep the thumb resting on C.", "Bars 5-8 are the same shape twice — learn them once."],
+      "right": {"notes": "C4(1) C4 G4(5) G4 | A4(5) A4 G4(5):2 | F4(4) F4 E4(3) E4 | D4(2) D4 C4(1):2 | G4(5) G4 F4(4) F4 | E4(3) E4 D4(2):2 | G4(5) G4 F4(4) F4 | E4(3) E4 D4(2):2 | C4(1) C4 G4(5) G4 | A4(5) A4 G4(5):2 | F4(4) F4 E4(3) E4 | D4(2) D4 C4(1):2"},
+      "left":  {"notes": "C3(5):2 E3(3):2 | F3(2):2 E3(3):2 | F3(2):2 C3(5):2 | G3(1):2 C3(5):2 | C3:2 E3(3):2 | G3(1):2 C3(5):2 | C3:2 E3(3):2 | G3(1):2 C3(5):2 | C3:2 E3(3):2 | F3(2):2 E3(3):2 | F3(2):2 C3(5):2 | G3(1):2 C3(5):2"}
+    }
+  ]
+}

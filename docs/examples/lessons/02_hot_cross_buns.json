@@ -1,0 +1,20 @@
+{
+  "format": "raw.author",
+  "version": 1,
+  "lessons": [
+    {
+      "name": "hot_cross_buns",
+      "title": "Hot Cross Buns",
+      "composer": "Traditional",
+      "tempo": 84,
+      "time": "4/4",
+      "key": "C",
+      "level": 1,
+      "position": {"right": "C4", "left": "C3"},
+      "instructions": "Only three notes in the right hand: E, D and C with fingers 3, 2 and 1. The third bar has quick repeated notes — keep the finger close to the key.",
+      "tips": ["Count 'one and two and' in bar three.", "The left hand holds long notes: press once and keep the key down for the whole bar."],
+      "right": {"notes": "E4(3) D4(2) C4(1):2 | E4 D4 C4:2 | C4:1/8 C4:1/8 C4:1/8 C4:1/8 D4:1/8 D4:1/8 D4:1/8 D4:1/8 | E4 D4 C4:2"},
+      "left":  {"notes": "C3(5):4 | G3(1):4 | C3:2 G3:2 | C3:4"}
+    }
+  ]
+}

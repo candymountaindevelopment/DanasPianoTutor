@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Danas Piano Tutor</title>
+<meta name="description" content="Piano lessons for beginners, scripted as text: listen at any speed with a metronome, watch the hands and finger numbers on the keys, and print the sheet music.">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%2314161a'/><text x='8' y='12.5' font-size='12' text-anchor='middle' fill='%234fd1a5'>♩</text></svg>">
+</head>
+<body>
+<noscript><p class="noscript">Danas Piano Tutor runs entirely in your browser and needs JavaScript enabled.</p></noscript>
+
+<div id="splash" class="splash" hidden>
+  <div class="splash-photo"></div>
+  <div class="splash-version"><b id="splash-v">v</b><span id="splash-date"></span><span id="splash-engine"></span></div>
+  <div class="splash-band">
+    <h1 id="splash-name">Danas Piano Tutor</h1>
+    <p id="splash-tagline"></p>
+    <div class="splash-progress"><div id="splash-bar"></div></div>
+    <div class="splash-foot"><span id="splash-status">Loading…</span><span><button id="btn-reset-app" class="link" title="Forget the saved settings and show every part of the app again">Reset app settings</button> · Part of Retro Audio Workstation</span></div>
+  </div>
+</div>
+
+<div id="app" class="app">
+  <header class="toolbar">
+    <span class="brand">Danas Piano Tutor</span>
+    <span data-feature="tools.files">
+      <button id="btn-open" title="Open a lesson file (.json)">Open…</button>
+      <input id="file-input" type="file" accept=".json,application/json" hidden>
+      <button id="btn-new" title="Start from the template">New</button>
+      <button id="btn-save" title="Download the script as a .json file">Save</button>
+      <button id="btn-keep" title="Keep the script in this browser">Keep</button>
+      <select id="mine" title="Lessons kept in this browser"><option value="">My lessons…</option></select>
+    </span>
+    <select id="examples" data-feature="tools.examples" title="Bundled example lessons"><option value="">Examples…</option></select>
+    <span data-feature="tools.export">
+      <button id="btn-musicxml" title="Export MusicXML with fingering (opens in MuseScore etc.)">MusicXML</button>
+      <button id="btn-wav" title="Export the current playback as a WAV file">WAV</button>
+    </span>
+    <button id="btn-print" data-feature="tools.print" title="Print, or save as PDF from the print dialog">Print / PDF</button>
+    <button id="btn-share" data-feature="tools.share" title="Copy a link that carries this lesson">Share</button>
+    <span class="spacer"></span>
+    <button id="btn-help" data-feature="tools.help" title="Lesson scripting reference (F1)">Help</button>
+    <a id="btn-ear" class="button" data-feature="tools.ear" href="listen/" target="_blank" rel="noopener" title="Danas Ear: hear the pitch from the microphone (opens in a new tab)">Ear</a>
+    <button id="btn-about" title="About">About</button>
+  </header>
+
+  <div class="transport">
+    <button id="btn-play" class="primary" title="Play / pause (Space)">▶ Play</button>
+    <button id="btn-stop" title="Stop (Esc)">■</button>
+    <span id="position" class="position">bar 1 · beat 1</span>
+    <span class="group" data-feature="play.tempo">
+      <label>Tempo</label>
+      <input id="tempo-slider" type="range" min="25" max="150" value="100" title="Speed as a percentage of the lesson tempo">
+      <input id="tempo-bpm" type="number" min="20" max="300" value="80" class="bpm"> <span>bpm</span>
+      <span id="tempo-pct" class="dim">100%</span>
+    </span>
+    <select id="hands" data-feature="play.hands" title="Which hands play">
+      <option value="both">Both hands</option><option value="right">Right hand only</option><option value="left">Left hand only</option>
+    </select>
+    <label data-feature="play.metronome"><input id="metronome" type="checkbox" checked> Metronome</label>
+    <label data-feature="play.countIn">Count-in <select id="count-in"><option value="0">off</option><option value="1" selected>1 bar</option><option value="2">2 bars</option></select></label>
+    <span class="group" data-feature="play.loop">
+      <label><input id="loop" type="checkbox"> Loop</label>
+      <label>bars <input id="bar-from" type="number" min="1" value="1" class="bar"> to <input id="bar-to" type="number" min="1" value="1" class="bar"></label>
+      <button id="btn-whole">Whole piece</button>
+    </span>
+  </div>
+
+  <main class="columns">
+    <section class="left">
+      <div id="score" class="score-box" data-feature="view.score"></div>
+      <canvas id="lane" class="lane" data-feature="view.lane"></canvas>
+      <canvas id="keys" class="keys" data-feature="view.keyboard"></canvas>
+    </section>
+    <aside class="right">
+      <canvas id="hands-canvas" class="hands" data-feature="view.hands"></canvas>
+      <nav class="tabs">
+        <button data-tab="lesson" class="active" data-feature="view.lessonPanel">Lesson</button>
+        <button data-tab="script" data-feature="tools.script">Script</button>
+        <button data-tab="settings" data-feature="app.settings">Settings</button>
+      </nav>
+      <div id="tab-lesson" class="tab">
+        <label class="dim">Lessons in this document</label>
+        <select id="lesson-list" size="4"></select>
+        <div id="info" class="info"></div>
+      </div>
+      <div id="tab-script" class="tab" hidden>
+        <div class="row">
+          <button id="btn-apply" class="primary" title="Ctrl+Enter">Apply</button>
+          <button id="btn-tidy" title="Re-indent the JSON">Tidy JSON</button>
+          <span id="script-state" class="dim"></span>
+        </div>
+        <textarea id="script" spellcheck="false" wrap="off"></textarea>
+        <pre id="report" class="report"></pre>
+      </div>
+      <div id="tab-settings" class="tab" hidden>
+        <p class="dim">Turn parts of the app off or on. Choices are remembered in this browser; a link can fix them for a student.</p>
+        <div class="row">
+          <label>Preset <select id="preset"><option value="">choose…</option></select></label>
+          <button id="btn-reset-settings">Defaults</button>
+          <button id="btn-settings-link" title="Copy a link that opens the app with these switches">Copy link</button>
+        </div>
+        <div id="feature-list"></div>
+      </div>
+    </aside>
+  </main>
+  <footer id="status" class="status"></footer>
+</div>
+
+<div id="print"></div>
+
+<dialog id="help">
+  <div class="dialog-head"><b>Lesson scripting reference</b><button id="btn-help-close">Close</button></div>
+  <pre id="help-text">Loading…</pre>
+</dialog>
+
+<script type="module" src="src/app.js"></script>
+</body>
+</html>

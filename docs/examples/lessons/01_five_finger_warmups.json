@@ -1,0 +1,55 @@
+{
+  "format": "raw.author",
+  "version": 1,
+  "project": {"name": "Five-finger warm-ups"},
+  "lessons": [
+    {
+      "name": "right_hand_walk",
+      "title": "Right Hand Walk",
+      "tempo": 72,
+      "time": "4/4",
+      "key": "C",
+      "level": 1,
+      "position": {"right": "C4"},
+      "instructions": "Right hand in C position: thumb on middle C. Walk up to G with fingers 1-2-3-4-5 and back down. Keep every finger resting on its own key.",
+      "tips": ["Curve the fingers; play on the tips.", "Say the finger numbers out loud as you play.", "Keep the wrist level with the hand."],
+      "right": {"notes": "C4(1) D4 E4 F4 | G4(5) F4 E4 D4 | C4:4"}
+    },
+    {
+      "name": "left_hand_walk",
+      "title": "Left Hand Walk",
+      "tempo": 72,
+      "time": "4/4",
+      "key": "C",
+      "level": 1,
+      "position": {"left": "C3"},
+      "instructions": "Left hand in C position: little finger (5) on the C below middle C, thumb on G. Walk up and back.",
+      "tips": ["The left thumb is still finger 1 — it sits on the highest key of the position.", "Let the arm carry the hand; do not press with the wrist."],
+      "left": {"notes": "C3(5) D3 E3 F3 | G3(1) F3 E3 D3 | C3:4"}
+    },
+    {
+      "name": "hands_together_walk",
+      "title": "Hands Together Walk",
+      "tempo": 66,
+      "time": "4/4",
+      "key": "C",
+      "level": 1,
+      "position": {"right": "C4", "left": "C3"},
+      "instructions": "Both hands in C position, moving in the same direction. Play it hands separately first (use the hands selector), then together.",
+      "right": {"notes": "C4(1) D4 E4 F4 | G4(5) F4 E4 D4 | C4:4"},
+      "left":  {"notes": "C3(5) D3 E3 F3 | G3(1) F3 E3 D3 | C3:4"}
+    },
+    {
+      "name": "skips",
+      "title": "Skips and Steps",
+      "tempo": 72,
+      "time": "4/4",
+      "key": "C",
+      "level": 1,
+      "position": {"right": "C4", "left": "C3"},
+      "instructions": "A step moves to the next key, a skip jumps over one. Watch the finger numbers: skips use fingers 1-3, 2-4, 3-5.",
+      "right": {"notes": "C4(1) E4(3) D4(2) F4(4) | E4(3) G4(5) F4(4) D4(2) | C4(1):2 E4(3):2 | C4:4"},
+      "left":  {"notes": "C3(5) E3(3) D3(4) F3(2) | E3(3) G3(1) F3(2) D3(4) | C3(5):2 E3(3):2 | C3:4"}
+    }
+  ]
+}

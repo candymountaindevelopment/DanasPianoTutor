@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Danas Ear — pitch listener</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <header class="toolbar">
+    <span class="brand">Danas Ear</span>
+    <span class="dim">pitch listener</span>
+    <button id="start" class="primary">▶ Listen</button>
+    <button id="stop" title="Stop listening" disabled>■</button>
+    <label>Input <select id="device"><option value="">default microphone</option></select></label>
+    <label>A4 <input id="a4" type="number" class="num" min="415" max="466" step="0.1" value="440"> Hz</label>
+    <label>Gate <input id="gate" type="range" min="-80" max="-20" step="1" value="-55"> <span id="gate-val">-55 dB</span></label>
+    <span class="spacer"></span>
+    <label title="Feed a synthetic tone into the analyser instead of the microphone">Test tone
+      <input id="tone-hz" type="number" class="num" min="30" max="4000" step="0.1" value="261.63"> Hz</label>
+    <button id="tone">Play tone</button>
+    <button id="about-btn">About</button>
+  </header>
+
+  <main class="columns">
+    <section class="left">
+      <div class="readout panel">
+        <div class="note"><span id="note-name">—</span><sub id="note-oct"></sub></div>
+        <div class="meter">
+          <canvas id="cents" width="600" height="70"></canvas>
+          <div class="meter-labels"><span>−50 ¢</span><span>0</span><span>+50 ¢</span></div>
+        </div>
+        <div class="facts">
+          <div><span class="dim">Frequency</span><b id="hz">—</b></div>
+          <div><span class="dim">Cents</span><b id="cents-val">—</b></div>
+          <div><span class="dim">Level</span><b id="level">—</b></div>
+          <div><span class="dim">Clarity</span><b id="clarity">—</b></div>
+          <div><span class="dim">MIDI</span><b id="midi">—</b></div>
+        </div>
+      </div>
+      <canvas id="trace" class="panel"></canvas>
+      <canvas id="scope" class="panel"></canvas>
+      <canvas id="keys" class="panel"></canvas>
+    </section>
+
+    <aside class="right">
+      <div class="row">
+        <b>Notes heard</b>
+        <span class="spacer"></span>
+        <button id="clear">Clear</button>
+        <button id="download">Download JSON</button>
+        <button id="copy-script" title="Copy the notes as a RAW lesson line, quantised to the tempo">Copy as script</button>
+        <label>at <input id="bpm" type="number" class="num" min="30" max="240" value="80"> bpm</label>
+      </div>
+      <div class="log-box">
+        <table id="log">
+          <thead><tr><th>#</th><th>Note</th><th>Hz</th><th>¢</th><th>Start</th><th>Length</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="dim small">Sound stays in this browser tab: nothing is recorded or uploaded. For best results
+        switch off echo cancellation in the browser's site settings if notes read a semitone off.</p>
+    </aside>
+  </main>
+
+  <footer class="status" id="status">Press Listen and allow the microphone.</footer>
+</div>
+
+<dialog id="about">
+  <div class="dialog-head"><b>About Danas Ear</b><button id="about-close">Close</button></div>
+  <div class="dialog-body">
+    <p><b>Danas Ear</b> listens to the microphone and shows the pitch it hears: note name, how many cents sharp
+      or flat, and the frequency in hertz. It is a companion to Danas Piano Tutor; the note log is the raw material
+      for comparing what a student played with a lesson.</p>
+    <h3>How it works</h3>
+    <ul>
+      <li>The browser's Web Audio API delivers the microphone signal in 4096-sample blocks.</li>
+      <li>Each block goes through the <b>YIN</b> algorithm (de Cheveigné &amp; Kawahara, 2002): a cumulative-mean
+        normalised difference function with parabolic interpolation, which finds the fundamental period even
+        when a harmonic is louder than the fundamental.</li>
+      <li><b>Clarity</b> is 1 minus the YIN difference at the chosen period — near 1 for a clean tone,
+        low for noise. Frames below the level gate or with clarity under 0.6 are ignored.</li>
+      <li>A note event starts when the same note is heard in three consecutive frames and ends after
+        four silent or different frames (~100 ms). The frequency shown for an event is the median of its frames.</li>
+    </ul>
+    <h3>Tips</h3>
+    <ul>
+      <li>Piano notes below C2 and above C7 are outside the detector range (40–2000 Hz fundamental).</li>
+      <li>Chords cannot be separated: the detector reports one pitch, usually the lowest strong one.</li>
+      <li>Use <i>Play tone</i> to check the setup without a microphone; the tone is analysed the same way.</li>
+    </ul>
+    <p class="dim small">Part of Retro Audio Workstation.</p>
+  </div>
+</dialog>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

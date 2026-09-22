@@ -1,0 +1,45 @@
+{
+  "format": "raw.author",
+  "version": 1,
+  "project": {"name": "Walking Hands", "tempo": 84},
+  "instruments": [
+    {
+      "name": "student_piano",
+      "description": "Soft, clear piano-ish voice for a beginner piece.",
+      "oscillator": "triangle",
+      "pitch": "C4",
+      "root_note": "C4",
+      "duration": 0.6,
+      "amplitude": 0.6,
+      "envelope": [0.004, 0.25, 0.5, 0.35],
+      "brightness": 0.45,
+      "drift": 0.04,
+      "stretch": "preserve_attack",
+      "filters": [{"type": "lowpass", "cutoff": 3000, "resonance": 0.7}],
+      "tags": ["piano"]
+    }
+  ],
+  "patterns": [
+    {
+      "name": "pattern_walking_hands",
+      "description": "C position, 4/4, quarters halves and wholes only. Bars 1-4: right hand walks up and down over held left-hand notes. Bars 5-8: mirror hands (contrary motion), thumbs moving outward together.",
+      "tempo": 84,
+      "steps": 32,
+      "step": "1/4",
+      "tracks": [
+        {
+          "name": "right hand",
+          "instrument": "student_piano",
+          "overrides": {"volume_db": -4},
+          "notes": "C4 D4 E4 F4 | G4 G4 G4 - | G4 F4 E4 D4 | C4 - - - | C4 D4 E4 F4 | G4 - - - | G4 F4 E4 D4 | C4 - - -"
+        },
+        {
+          "name": "left hand",
+          "instrument": "student_piano",
+          "overrides": {"volume_db": -7},
+          "notes": "C3 - - - | G3 - - - | G3 - - - | C3 - - - | G3 F3 E3 D3 | C3 - - - | C3 D3 E3 F3 | G3 - C3 -"
+        }
+      ]
+    }
+  ]
+}

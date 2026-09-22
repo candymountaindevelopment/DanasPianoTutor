@@ -1,0 +1,20 @@
+# Required
+PyQt6>=6.6
+numpy>=1.26
+
+# Strongly recommended.
+# soundfile bundles libsndfile >= 1.1, which reads and writes MP3, OGG and FLAC
+# with no external tools. Without it the app still runs, but only WAV can be
+# imported unless FFmpeg is on PATH.
+soundfile>=0.12
+
+# Playback. The app runs and renders without it; only preview is disabled.
+sounddevice>=0.4
+
+# Optional: accelerates biquad filtering. A pure-Python fallback is built in.
+# scipy>=1.11
+
+# Optional: a pip-installable FFmpeg binary, if you would rather not install
+# FFmpeg system-wide. Only needed for formats libsndfile does not cover, and
+# for exact MP3 bitrate control.
+# imageio-ffmpeg>=0.4

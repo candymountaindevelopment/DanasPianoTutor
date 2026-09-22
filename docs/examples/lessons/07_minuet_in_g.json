@@ -1,0 +1,35 @@
+{
+  "format": "raw.author",
+  "version": 1,
+  "instruments": [
+    {
+      "name": "harpsichord",
+      "oscillator": "saw",
+      "pitch": "C4",
+      "root_note": "C4",
+      "duration": 0.5,
+      "amplitude": 0.45,
+      "envelope": [0.002, 0.25, 0.2, 0.08],
+      "drift": 0.0,
+      "stretch": "uniform",
+      "filters": [{"type": "drive", "amount": 0.7}]
+    }
+  ],
+  "lessons": [
+    {
+      "name": "minuet_in_g",
+      "title": "Minuet in G (first half, simplified)",
+      "composer": "C. Petzold, arranged for beginners",
+      "tempo": 100,
+      "time": "3/4",
+      "key": "G",
+      "level": 3,
+      "voice": "harpsichord",
+      "position": {"right": "G4", "left": "G3"},
+      "instructions": "Three beats in a bar and one sharp in the key signature: every F is F sharp. The right hand starts in G position (thumb on G4) and stretches up in bars 3-4. The left hand plays a simple bass line.",
+      "tips": ["Count 1-2-3 with a gentle lean on beat 1.", "Eighth-note runs must stay even: practise them slowly with the metronome.", "Watch for the finger changes marked where the hand moves."],
+      "right": {"notes": "D5(5) G4(1):1/8 A4(2):1/8 B4(3):1/8 C5(4):1/8 | D5(5) G4(1) G4 | E5(5) C5(3):1/8 D5(4):1/8 E5(5):1/8 F#5(5):1/8 | G5(5) G4(1) G4 | C5(4) D5(5):1/8 C5(4):1/8 B4(3):1/8 A4(2):1/8 | B4(3) C5(4):1/8 B4(3):1/8 A4(2):1/8 G4(1):1/8 | F#4(2) G4(3):1/8 A4(4):1/8 B4(5):1/8 G4(3):1/8 | B4(5) A4(4):2"},
+      "left":  {"notes": "G3(5):3 | G3:3 | C4(2):3 | G3(5):3 | A3(4):3 | G3(5):3 | D4(1):3 | G3(5):3"}
+    }
+  ]
+}

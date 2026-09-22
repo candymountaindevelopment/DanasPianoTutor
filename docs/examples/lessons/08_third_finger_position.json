@@ -1,0 +1,59 @@
+{
+  "format": "raw.author",
+  "version": 1,
+  "project": {"name": "Third finger position"},
+  "lessons": [
+    {
+      "name": "third_finger_anchor",
+      "title": "Third Finger Anchor",
+      "tempo": 66,
+      "time": "4/4",
+      "key": "C",
+      "level": 1,
+      "position": {"right": "C4", "left": "C3"},
+      "instructions": "Find the position with the third finger first: right hand 3 on E4, left hand 3 on E3. Let the other fingers settle on their keys. Play only the third finger — four times, then rest a bar and repeat.",
+      "tips": ["Finger 3 stands tall in the middle of the hand; keep it curved.", "The other four fingers stay resting on their keys, not lifted.", "Drop the weight of the arm into the key; do not poke."],
+      "right": {"notes": "E4(3) E4 E4 E4 | .:4 | E4 E4 E4 E4 | E4:4"},
+      "left":  {"notes": ".:4 | E3(3) E3 E3 E3 | .:4 | E3:4"}
+    },
+    {
+      "name": "third_finger_neighbours",
+      "title": "Third Finger and Its Neighbours",
+      "tempo": 72,
+      "time": "4/4",
+      "key": "C",
+      "level": 1,
+      "position": {"right": "C4", "left": "C3"},
+      "instructions": "The third finger steps to each neighbour and comes home: 3-2-3, 3-4-3. Same shape in the left hand, where finger 2 is on F3 and finger 4 on D3.",
+      "tips": ["Say '3-2-3, 3-4-3' as you play.", "Keep finger 3 close to the key while 2 or 4 plays.", "Wrist stays level; only the fingers move."],
+      "right": {"notes": "E4(3) D4(2) E4(3) . | E4 F4(4) E4 . | E4 D4 E4 F4 | E4:4"},
+      "left":  {"notes": "E3(3) F3(2) E3(3) . | E3 D3(4) E3 . | E3 F3 E3 D3 | E3:4"}
+    },
+    {
+      "name": "third_finger_skips",
+      "title": "Third Finger Skips",
+      "tempo": 72,
+      "time": "4/4",
+      "key": "C",
+      "level": 2,
+      "position": {"right": "C4", "left": "C3"},
+      "instructions": "Skips from the third finger to the thumb and to the little finger: 3-1-3-5. Each skip jumps over one key. Then the same in the left hand: 3-5-3-1.",
+      "tips": ["A skip is two keys apart; feel the distance in the hand before you play.", "Thumb plays on its side, not flat.", "Practise the left hand alone first (hands selector), then together."],
+      "right": {"notes": "E4(3) C4(1) E4(3) G4(5) | E4 C4 E4 G4 | E4:2 C4:2 | E4:2 G4:2 | E4 C4 E4 G4 | E4:4"},
+      "left":  {"notes": "E3(3) C3(5) E3(3) G3(1) | E3 C3 E3 G3 | E3:2 C3:2 | E3:2 G3:2 | E3 C3 E3 G3 | E3:4"}
+    },
+    {
+      "name": "third_finger_tune",
+      "title": "Little Tune Around Finger 3",
+      "tempo": 80,
+      "time": "3/4",
+      "key": "C",
+      "level": 2,
+      "position": {"right": "C4", "left": "C3"},
+      "instructions": "A small waltz that starts and ends on the third finger. Count 1-2-3 and lean gently on beat one. The left hand plays one note per bar, held for all three beats.",
+      "tips": ["Every phrase begins on finger 3 — find it before you start.", "The dotted half note gets three counts: hold it.", "Slow the tempo down until it is easy, then move the slider up."],
+      "right": {"notes": "E4(3) F4(4) G4(5) | E4(3) D4(2) C4(1) | D4(2) E4(3) F4(4) | E4(3):3 | E4 G4(5) F4(4) | E4(3) C4(1) D4(2) | E4(3) D4(2) D4 | E4(3):3"},
+      "left":  {"notes": "C3(5):3 | C3:3 | G3(1):3 | C3(5):3 | C3:3 | C3:3 | G3(1):3 | C3(5):3"}
+    }
+  ]
+}

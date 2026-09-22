@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://retro-audio-workstation/raw_author_schema.json",
+  "title": "RAW Authoring Format",
+  "description": "A chatbot-writable document that expands into Retro Audio Workstation assets. See AUTHORING_FORMAT.md.",
+  "type": "object",
+  "required": ["format"],
+  "additionalProperties": false,
+  "properties": {
+    "format": {"const": "raw.author"},
+    "version": {"type": "integer", "enum": [1], "default": 1},
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "tempo": {"type": "number", "minimum": 20, "maximum": 400},
+        "sample_rate": {"type": "integer", "enum": [22050, 44100, 48000]},
+        "fps": {"type": "integer", "minimum": 1, "maximum": 240}
+      }
+    },
+    "slots": {
+      "type": "object",
+      "description": "Named roles a pattern can reference before a sound is chosen. null leaves the slot unbound; unbound slots render an audible placeholder click.",
+      "additionalProperties": {
+        "oneOf": [
+          {"type": "null"},
+          {"$ref": "#/$defs/identifier"},
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "sound": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/identifier"}]},
+              "asset": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/identifier"}]},
+              "overrides": {"$ref": "#/$defs/overrides"},
+              "description": {"type": "string"}
+            }
+          }
+        ]
+      }
+    },
+    "sounds": {"type": "array", "items": {"$ref": "#/$defs/sound"}},
+    "instruments": {"type": "array", "items": {"$ref": "#/$defs/sound"}},
+    "patterns": {"type": "array", "items": {"$ref": "#/$defs/pattern"}}
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+      "description": "Safe variable name usable directly in game code."
+    },
+    "note": {
+      "type": "string",
+      "pattern": "^[a-gA-G][#bs]*-?[0-9]+$",
+      "description": "Note name. C4 is middle C (MIDI 60); A4 is 440 Hz."
+    },
+    "frequency": {
+      "description": "Hertz as a number, or a note name.",
+      "oneOf": [
+        {"type": "number", "minimum": 1, "maximum": 20000},
+        {"$ref": "#/$defs/note"},
+        {"type": "string", "pattern": "^[Hh][Zz]:[0-9.]+$"}
+      ]
+    },
+    "curve": {"enum": ["exponential", "linear", "step"], "default": "exponential"},
+    "pitch": {
+      "description": "Constant, ramp, or multi-point trajectory over normalised time.",
+      "oneOf": [
+        {"$ref": "#/$defs/frequency"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["from"],
+          "properties": {
+            "from": {"$ref": "#/$defs/frequency"},
+            "to": {"$ref": "#/$defs/frequency"},
+            "curve": {"$ref": "#/$defs/curve"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["points"],
+          "properties": {
+            "curve": {"$ref": "#/$defs/curve"},
+            "points": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "at": {"type": "number", "minimum": 0, "maximum": 1,
+                         "description": "Normalised position, NOT seconds."},
+                  "u": {"type": "number", "minimum": 0, "maximum": 1},
+                  "hz": {"type": "number", "minimum": 1, "maximum": 20000},
+                  "note": {"$ref": "#/$defs/note"}
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "note": {"$ref": "#/$defs/note"},
+            "hz": {"type": "number"}
+          }
+        }
+      ]
+    },
+    "envelope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "attack": {"type": "number", "minimum": 0, "maximum": 10},
+            "decay": {"type": "number", "minimum": 0, "maximum": 10},
+            "sustain": {"type": "number", "minimum": 0, "maximum": 1},
+            "release": {"type": "number", "minimum": 0, "maximum": 10}
+          }
+        },
+        {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number"}}
+      ]
+    },
+    "drift": {
+      "oneOf": [
+        {"type": "number", "minimum": 0, "maximum": 1},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "amount": {"type": "number", "minimum": 0, "maximum": 1},
+            "lfo_hz": {"type": "number", "minimum": 0.05, "maximum": 40},
+            "pitch_depth": {"type": "number", "minimum": 0, "maximum": 12},
+            "amp_depth": {"type": "number", "minimum": 0, "maximum": 1},
+            "noise_floor": {"type": "number", "minimum": 0, "maximum": 0.5},
+            "time_domain": {"enum": ["absolute", "normalized"], "default": "absolute"}
+          }
+        }
+      ]
+    },
+    "filterValue": {
+      "description": "A constant, or a sweep using the pitch syntax.",
+      "oneOf": [{"type": "number"}, {"$ref": "#/$defs/pitch"}]
+    },
+    "filter": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": ["lowpass", "highpass", "bandpass", "notch", "low_shelf",
+                   "high_shelf", "emphasis", "bitcrush", "sr_reduce", "drive"]
+        },
+        "enabled": {"type": "boolean", "default": true},
+        "id": {"type": "string"},
+        "cutoff": {"$ref": "#/$defs/filterValue"},
+        "resonance": {"$ref": "#/$defs/filterValue"},
+        "center": {"$ref": "#/$defs/filterValue"},
+        "width": {"$ref": "#/$defs/filterValue"},
+        "amount": {"$ref": "#/$defs/filterValue"},
+        "corner": {"$ref": "#/$defs/filterValue"},
+        "gain_db": {"$ref": "#/$defs/filterValue"},
+        "bits": {"$ref": "#/$defs/filterValue"},
+        "target_rate": {"$ref": "#/$defs/filterValue"}
+      },
+      "additionalProperties": false
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string"},
+        "role": {"enum": ["attack", "transient", "body", "tail", "custom"]},
+        "length": {"type": "number", "exclusiveMinimum": 0,
+                   "description": "Relative weight; normalised across all regions."},
+        "end": {"type": "number", "minimum": 0, "maximum": 1,
+                "description": "Cumulative boundary. Use length OR end, not both."},
+        "elasticity": {"type": "number", "minimum": 0, "maximum": 4},
+        "mode": {"enum": ["stretch", "sustain", "loop"], "default": "stretch"}
+      }
+    },
+    "overrides": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "duration": {
+          "oneOf": [
+            {"type": "number", "exclusiveMinimum": 0},
+            {"type": "object", "properties": {"musical": {"type": "string"}}, "required": ["musical"]},
+            {"type": "object", "properties": {"ratio": {"type": "number"}}, "required": ["ratio"]}
+          ]
+        },
+        "stretch_mode": {"enum": ["uniform", "preserve_attack", "preserve_impact", "custom"]},
+        "pitch_offset": {"type": "number", "minimum": -48, "maximum": 48},
+        "volume_db": {"type": "number", "minimum": -60, "maximum": 12},
+        "pan": {"type": "number", "minimum": -1, "maximum": 1},
+        "brightness": {"type": "number", "minimum": 0, "maximum": 1},
+        "drift": {"type": "number", "minimum": 0, "maximum": 4},
+        "spectral_center": {"type": "number", "minimum": 0.05, "maximum": 20},
+        "spectral_width": {"type": "number", "minimum": 0.05, "maximum": 6},
+        "spectral_amount": {"type": "number", "minimum": -24, "maximum": 24},
+        "duty": {"type": "number", "minimum": 0.01, "maximum": 0.99},
+        "seed_offset": {"type": "integer"}
+      }
+    },
+    "sound": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"$ref": "#/$defs/identifier"},
+        "from_preset": {
+          "enum": ["laser", "coin", "jump", "hit", "explosion", "blip", "pad", "drone"],
+          "description": "pad and drone are sustained background sounds; the rest are one-shots."
+        },
+        "oscillator": {"enum": ["sine", "square", "triangle", "saw", "noise", "white", "pulse_pair"]},
+        "duration": {"type": "number", "minimum": 0.005, "maximum": 60},
+        "pitch": {"$ref": "#/$defs/pitch"},
+        "duty": {"type": "number", "minimum": 0.01, "maximum": 0.99},
+        "amplitude": {"type": "number", "minimum": 0, "maximum": 1.5},
+        "pan": {"type": "number", "minimum": -1, "maximum": 1},
+        "brightness": {"type": "number", "minimum": 0, "maximum": 1,
+                       "description": "0.5 is the neutral point and changes nothing."},
+        "envelope": {"$ref": "#/$defs/envelope"},
+        "drift": {"$ref": "#/$defs/drift"},
+        "filters": {"type": "array", "items": {"$ref": "#/$defs/filter"}},
+        "stretch": {"enum": ["uniform", "preserve_attack", "preserve_impact", "custom"]},
+        "regions": {"type": "array", "items": {"$ref": "#/$defs/region"}},
+        "seed": {"type": "integer", "minimum": 0},
+        "root_note": {"$ref": "#/$defs/note"},
+        "tags": {"type": "array", "items": {"type": "string"}},
+        "description": {"type": "string"}
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "step": {"type": "number", "minimum": 0},
+        "note": {"$ref": "#/$defs/note"},
+        "length": {
+          "oneOf": [{"type": "number", "exclusiveMinimum": 0},
+                    {"type": "string", "pattern": "^[0-9]+(/[0-9]+)?[.t]?$"}]
+        },
+        "velocity": {"type": "number", "minimum": 0, "maximum": 1},
+        "overrides": {"$ref": "#/$defs/overrides"}
+      }
+    },
+    "track": {
+      "type": "object",
+      "additionalProperties": false,
+      "oneOf": [
+        {"required": ["instrument"]},
+        {"required": ["slot"]}
+      ],
+      "properties": {
+        "name": {"type": "string"},
+        "instrument": {"$ref": "#/$defs/identifier"},
+        "slot": {
+          "$ref": "#/$defs/identifier",
+          "description": "A role bound to a sound later. Use slot OR instrument, not both."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Compact tracker string: note names, '.' rest, '-' hold, 'x' trigger, 'X' accent, '|' ignored."
+        },
+        "events": {"type": "array", "items": {"$ref": "#/$defs/event"}},
+        "mute": {"type": "boolean"},
+        "overrides": {"$ref": "#/$defs/overrides"}
+      }
+    },
+    "pattern": {
+      "type": "object",
+      "required": ["name", "tracks"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"$ref": "#/$defs/identifier"},
+        "tempo": {"type": "number", "minimum": 20, "maximum": 400},
+        "steps": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "step": {"type": "string", "default": "1/16"},
+        "swing": {"type": "number", "minimum": 0, "maximum": 1},
+        "tracks": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/track"}},
+        "overrides": {"$ref": "#/$defs/overrides"},
+        "tags": {"type": "array", "items": {"type": "string"}},
+        "description": {"type": "string"}
+      }
+    }
+  }
+}

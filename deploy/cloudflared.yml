@@ -1,0 +1,14 @@
+# /etc/cloudflared/config.yml inside the VM (docs/WEB_PLAN.md §5.1, §5.3.2).
+# Replace <TUNNEL-ID> with the id printed by `cloudflared tunnel create tutor`
+# and the hostname with your domain. The credentials file never leaves the VM.
+
+tunnel: <TUNNEL-ID>
+credentials-file: /etc/cloudflared/<TUNNEL-ID>.json
+
+ingress:
+  - hostname: piano.example.com
+    service: http://127.0.0.1:8080
+    originRequest:
+      connectTimeout: 10s
+      noHappyEyeballs: true
+  - service: http_status:404
