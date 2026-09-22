@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Danas Tutor — Practice</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&amp;family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#0E1214;font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+    button{font:inherit;color:inherit}
+    a{color:#46D7A1}a:hover{color:#6FE4B8}
+    input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;height:16px}
+    input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:#2A3437}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;margin-top:-4.5px;border-radius:50%;background:#46D7A1;border:0;cursor:pointer}
+    input[type=range]::-moz-range-track{height:3px;border-radius:2px;background:#2A3437}
+    input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radius:50%;background:#46D7A1;cursor:pointer}
+  </style>
+</helmet>
+
+<div style="width: 1440px; height: 900px; background: #0E1214; color: #E9EEF0; display: flex; flex-direction: column; overflow: hidden;">
+
+  <!-- ── top bar ───────────────────────────────────────────── -->
+  <header style="height: 52px; flex-shrink: 0; display: flex; align-items: stretch; border-bottom: 1px solid #1E2629;">
+
+    <div style="width: 52px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-right: 1px solid #1E2629;">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1.4" y="1.4" width="19.2" height="19.2" rx="6" fill="#46D7A1"></rect><path d="M8.2 6.6v8.8M13.8 6.6v8.8" stroke="#0E1214" stroke-width="1.8" stroke-linecap="round"></path></svg>
+    </div>
+
+    <div style="width: 996px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 18px; border-right: 1px solid #1E2629;">
+      <span style="font-size: 13px; color: #96A3A8; letter-spacing: 0.01em;">{{modeName}}</span>
+      <span style="flex-grow: 1;"></span>
+
+      <button type="button" style="height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 10px 0 9px; border: 1px solid #242D31; border-radius: 8px; background: transparent; color: #96A3A8; cursor: pointer;">
+        <svg width="15" height="15" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="7.6" cy="7.6" r="5.1"></circle><path d="M11.4 11.4 15 15"></path></svg>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">⌘K</span>
+      </button>
+
+      <button type="button" onClick="{{toggleListen}}" style="{{listenBtn}}">
+        <svg width="15" height="15" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><rect x="6.2" y="2.2" width="5.6" height="9" rx="2.8"></rect><path d="M3.6 8.4a5.4 5.4 0 0 0 10.8 0"></path><path d="M9 13.8V15.8"></path></svg>
+        <span style="font-size: 12.5px;">Listen</span>
+      </button>
+
+      <button type="button" aria-label="More actions" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: transparent; color: #8C9A9F; cursor: pointer;">
+        <svg width="17" height="17" viewBox="0 0 18 18" aria-hidden="true"><circle cx="4" cy="9" r="1.35" fill="currentColor"></circle><circle cx="9" cy="9" r="1.35" fill="currentColor"></circle><circle cx="14" cy="9" r="1.35" fill="currentColor"></circle></svg>
+      </button>
+    </div>
+
+    <div style="width: 392px; flex-shrink: 0; display: flex; align-items: stretch; padding: 0 20px;">
+      <sc-if value="{{notEar}}" hint-placeholder-val="{{true}}">
+        <button type="button" onClick="{{tabLesson}}" style="{{tabLessonS}}">Lesson</button>
+        <button type="button" onClick="{{tabPractice}}" style="{{tabPracticeS}}">Practice</button>
+      </sc-if>
+      <sc-if value="{{isEar}}" hint-placeholder-val="{{true}}">
+        <span style="display: flex; align-items: center; font-size: 13px; color: #E9EEF0;">Notes heard</span>
+        <span style="flex-grow: 1;"></span>
+        <span style="display: flex; align-items: center; gap: 2px;">
+          <button type="button" aria-label="Clear notes heard" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: #8C9A9F; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M3.6 5h10.8M7 5V3.5h4V5M5.4 5l.7 9.5h5.8L12.6 5"></path></svg></button>
+          <button type="button" aria-label="Download as JSON" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: #8C9A9F; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M9 2.8v8.4M5.6 8.4 9 11.8l3.4-3.4M3.4 14.8h11.2"></path></svg></button>
+          <button type="button" aria-label="Copy as lesson script" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: #8C9A9F; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><rect x="6.4" y="6.4" width="8.2" height="8.2" rx="2"></rect><path d="M11.4 6.4V5a1.6 1.6 0 0 0-1.6-1.6H5A1.6 1.6 0 0 0 3.4 5v4.8A1.6 1.6 0 0 0 5 11.4h1.4"></path></svg></button>
+        </span>
+      </sc-if>
+    </div>
+  </header>
+
+  <!-- ── body ──────────────────────────────────────────────── -->
+  <div style="flex-grow: 1; display: flex; align-items: stretch; min-height: 0;">
+
+    <!-- rail: three modes of one screen -->
+    <nav style="width: 52px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 12px; border-right: 1px solid #1E2629;">
+      <button type="button" aria-label="Learn" onClick="{{goLearn}}" style="{{railLearn}}">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M2.6 4.4h12.8M2.6 7.4h12.8M2.6 10.4h12.8M2.6 13.4h12.8"></path><ellipse cx="6.2" cy="10.4" rx="2.1" ry="1.6" fill="currentColor" stroke="none"></ellipse><path d="M8.3 10V5.2"></path></svg>
+      </button>
+      <button type="button" aria-label="Practice" onClick="{{goPractice}}" style="{{railPractice}}">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="9" cy="9" r="6.3"></circle><circle cx="9" cy="9" r="2.4" fill="currentColor" stroke="none"></circle></svg>
+      </button>
+      <button type="button" aria-label="Ear" onClick="{{goEar}}" style="{{railEar}}">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M3.2 7.4v3.2M6.7 4.6v8.8M10.2 6.2v5.6M13.7 3.4v11.2"></path></svg>
+      </button>
+      <span style="flex-grow: 1;"></span>
+      <button type="button" aria-label="Settings" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 12px; background: transparent; color: #647176; cursor: pointer;">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M2.6 5.6h7.4M14.2 5.6h1.2M2.6 12.4h3.2M10 12.4h5.4"></path><circle cx="12.2" cy="5.6" r="2.2"></circle><circle cx="7.9" cy="12.4" r="2.2"></circle></svg>
+      </button>
+    </nav>
+
+    <!-- stage: staff, ribbon, tape, keyboard — these never move between modes -->
+    <main style="width: 996px; flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid #1E2629;">
+
+      <!-- score -->
+      <sc-if value="{{showScore}}" hint-placeholder-val="{{true}}">
+      <section style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 48px; min-height: 0;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 7px; margin-bottom: 34px;">
+          <button type="button" style="display: flex; align-items: center; gap: 9px; padding: 2px 4px; border: 0; background: transparent; cursor: pointer;">
+            <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 31px; line-height: 1; color: #F2F6F7;">Right Hand Walk</span>
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="#7E8C91" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4.6 7 9 11.4 13.4 7"></path></svg>
+          </button>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; color: #7E8C91;">LEVEL 1 · C MAJOR · 4/4 · 3 BARS · ♩ 72</div>
+        </div>
+
+        <svg viewBox="0 0 900 250" width="100%" role="img" aria-label="Grand staff: C4 D4 E4 F4, G4 F4 E4 D4, whole note C4, fingering 1 2 3 4 5 4 3 2 1">
+          <g stroke="#313C40" stroke-width="1">
+            <path d="M20 46h858M20 58h858M20 70h858M20 82h858M20 94h858"></path>
+            <path d="M20 150h858M20 162h858M20 174h858M20 186h858M20 198h858"></path>
+          </g>
+          <path d="M14 46c-6 22-6 30 0 46 -6 16 -6 24 0 60 -6 36 -6 44 0 60 -6 16 -6 24 0 46" fill="none" stroke="#4A585C" stroke-width="2.4" stroke-linecap="round"></path>
+          <path d="M20 46v152M876 46v152M879.5 46v152" stroke="#4A585C" stroke-width="1.4"></path>
+          <path d="M390 46v152M650 46v152" stroke="#2A3538" stroke-width="1.2"></path>
+
+          <text x="30" y="101" font-family="'Segoe UI Symbol','Noto Music','Apple Symbols',serif" font-size="66" fill="#C9D3D6">&#119070;</text>
+          <text x="32" y="180" font-family="'Segoe UI Symbol','Noto Music','Apple Symbols',serif" font-size="52" fill="#C9D3D6">&#119074;</text>
+          <g font-family="'Instrument Serif',Georgia,serif" font-size="30" fill="#C9D3D6" text-anchor="middle">
+            <text x="100" y="72">4</text><text x="100" y="96">4</text>
+            <text x="100" y="176">4</text><text x="100" y="200">4</text>
+          </g>
+
+          <!-- tape-measure of the played span -->
+          <rect x="149" y="30" width="22" height="184" fill="#46D7A1" opacity="0.07"></rect>
+          <path d="M160 28v190" stroke="#46D7A1" stroke-width="1.8"></path>
+          <circle cx="160" cy="26" r="3.4" fill="#46D7A1"></circle>
+
+          <!-- bar 1 -->
+          <g stroke="#DCE3E5" stroke-width="2.2" stroke-linecap="round">
+            <path d="M147 106h26"></path>
+            <path d="M167.6 104V64"></path><path d="M232.6 98V58"></path><path d="M297.6 92V52"></path><path d="M362.6 86V46"></path>
+          </g>
+          <g fill="#DCE3E5">
+            <ellipse cx="160" cy="106" rx="8.2" ry="6" transform="rotate(-20 160 106)" fill="#46D7A1"></ellipse>
+            <ellipse cx="225" cy="100" rx="8.2" ry="6" transform="rotate(-20 225 100)"></ellipse>
+            <ellipse cx="290" cy="94" rx="8.2" ry="6" transform="rotate(-20 290 94)"></ellipse>
+            <ellipse cx="355" cy="88" rx="8.2" ry="6" transform="rotate(-20 355 88)"></ellipse>
+          </g>
+          <!-- bar 2 -->
+          <g stroke="#DCE3E5" stroke-width="2.2" stroke-linecap="round">
+            <path d="M427.6 80V40"></path><path d="M492.6 86V46"></path><path d="M557.6 92V52"></path><path d="M622.6 98V58"></path>
+          </g>
+          <g fill="#DCE3E5">
+            <ellipse cx="420" cy="82" rx="8.2" ry="6" transform="rotate(-20 420 82)"></ellipse>
+            <ellipse cx="485" cy="88" rx="8.2" ry="6" transform="rotate(-20 485 88)"></ellipse>
+            <ellipse cx="550" cy="94" rx="8.2" ry="6" transform="rotate(-20 550 94)"></ellipse>
+            <ellipse cx="615" cy="100" rx="8.2" ry="6" transform="rotate(-20 615 100)"></ellipse>
+          </g>
+          <!-- bar 3 -->
+          <path d="M714 106h32" stroke="#DCE3E5" stroke-width="2.2" stroke-linecap="round"></path>
+          <ellipse cx="730" cy="106" rx="10.4" ry="6.6" transform="rotate(-12 730 106)" fill="none" stroke="#DCE3E5" stroke-width="3.2"></ellipse>
+
+          <!-- bass: whole rests -->
+          <g fill="#8E9A9E">
+            <rect x="248" y="162" width="16" height="6"></rect>
+            <rect x="508" y="162" width="16" height="6"></rect>
+            <rect x="742" y="162" width="16" height="6"></rect>
+          </g>
+
+          <!-- fingering -->
+          <g font-family="'Instrument Sans',sans-serif" font-size="13" font-weight="500" text-anchor="middle" fill="#B8C3C7">
+            <text x="160" y="30" fill="#46D7A1">1</text><text x="225" y="30">2</text><text x="290" y="30">3</text><text x="355" y="30">4</text>
+            <text x="420" y="30">5</text><text x="485" y="30">4</text><text x="550" y="30">3</text><text x="615" y="30">2</text>
+            <text x="730" y="30">1</text>
+          </g>
+        </svg>
+      </section>
+      </sc-if>
+
+      <!-- ear mode: the trace takes the staff's place, nothing else moves -->
+      <sc-if value="{{isEar}}" hint-placeholder-val="{{true}}">
+      <section style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 48px; min-height: 0;">
+        <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 18px;">
+          <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 27px; color: #F2F6F7;">Free listening</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; color: #7E8C91;">LAST 12 S · A4 = 440 HZ · GATE −55 DB</span>
+        </div>
+        <svg viewBox="0 0 900 300" width="100%" role="img" aria-label="Pitch trace of the last twelve seconds, a scale walking up and back down around middle C">
+          <g stroke="#1B2326" stroke-width="1">
+            <path d="M44 270h856M44 190h856M44 110h856M44 30h856"></path>
+          </g>
+          <g font-family="'JetBrains Mono',monospace" font-size="10" fill="#6E7C81">
+            <text x="6" y="274">C3</text><text x="6" y="194">C4</text><text x="6" y="114">C5</text><text x="6" y="34">C6</text>
+          </g>
+          <g stroke="#46D7A1" stroke-width="2.6" stroke-linecap="round" fill="none" opacity="0.92">
+            <path d="M60 191 95 189.4 130 190.6"></path>
+            <path d="M150 177.6 185 176.2 220 177.4"></path>
+            <path d="M240 164.2 275 162.8 310 164"></path>
+            <path d="M330 157.4 365 156 400 157.2"></path>
+            <path d="M420 144.2 455 142.6 490 144"></path>
+            <path d="M510 157.6 545 156.2 580 157.4"></path>
+            <path d="M600 164 635 162.6 670 163.8"></path>
+            <path d="M690 177.4 725 176 760 177.2"></path>
+            <path d="M780 190.4 830 189 875 190.2"></path>
+          </g>
+          <g fill="#46D7A1" opacity="0.14">
+            <rect x="60" y="284" width="70" height="8" rx="4"></rect><rect x="150" y="284" width="70" height="8" rx="4"></rect>
+            <rect x="240" y="284" width="70" height="8" rx="4"></rect><rect x="330" y="284" width="70" height="8" rx="4"></rect>
+            <rect x="420" y="284" width="70" height="8" rx="4"></rect><rect x="510" y="284" width="70" height="8" rx="4"></rect>
+            <rect x="600" y="284" width="70" height="8" rx="4"></rect><rect x="690" y="284" width="70" height="8" rx="4"></rect>
+          </g>
+          <rect x="780" y="284" width="95" height="8" rx="4" fill="#46D7A1" opacity="0.5"></rect>
+          <path d="M878 20v276" stroke="#46D7A1" stroke-width="1.6" opacity="0.6"></path>
+        </svg>
+      </section>
+      </sc-if>
+
+      <!-- tuner ribbon: all that is left of a second application -->
+      <sc-if value="{{ribbon}}" hint-placeholder-val="{{true}}">
+      <div style="height: 46px; flex-shrink: 0; display: flex; align-items: center; gap: 22px; padding: 0 48px; border-top: 1px solid #1E2629; border-bottom: 1px solid #1E2629; background: rgba(70,215,161,0.035);">
+        <span style="display: flex; align-items: baseline; gap: 9px;">
+          <span style="font-family: 'Instrument Sans',sans-serif; font-size: 17px; font-weight: 600; color: #46D7A1; min-width: 30px;">A3</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #96A3A8;">220.4 Hz</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #96A3A8;">+3 ¢</span>
+        </span>
+        <span style="flex-grow: 1;"></span>
+        <svg width="330" height="26" viewBox="0 0 330 26" role="img" aria-label="Tuning meter, three cents sharp">
+          <path d="M0 13h330" stroke="#232C2F" stroke-width="1"></path>
+          <g stroke="#2E393C" stroke-width="1"><path d="M1 7v12M83 9v8M247 9v8M329 7v12"></path></g>
+          <path d="M165 3v20" stroke="#3E4B4F" stroke-width="1.4"></path>
+          <rect x="165" y="9" width="10" height="8" rx="4" fill="#46D7A1" opacity="0.28"></rect>
+          <path d="M175 1v24" stroke="#46D7A1" stroke-width="2.4" stroke-linecap="round"></path>
+          <g font-family="'JetBrains Mono',monospace" font-size="9" fill="#5F6D72"><text x="0" y="26">−50</text><text x="308" y="26">+50</text></g>
+        </svg>
+        <span style="flex-grow: 1;"></span>
+        <span style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em; color: #6E7C81;">CLARITY</span>
+          <svg width="150" height="22" viewBox="0 0 150 22" role="img" aria-label="Clarity, steady at zero point nine two">
+            <path d="M0 16 12 15 24 11 36 12 48 6 60 7 72 5 84 6 96 4 108 5 120 4 132 5 148 4" fill="none" stroke="#46D7A1" stroke-width="1.6" stroke-linecap="round" opacity="0.8"></path>
+          </svg>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #C6D0D3;">0.92</span>
+        </span>
+      </div>
+      </sc-if>
+
+      <!-- tape: the note lane, reduced to a strip -->
+      <div style="height: 74px; flex-shrink: 0; padding: 12px 48px 0; border-top: 1px solid #161D20;">
+        <svg viewBox="0 0 900 62" width="100%" role="img" aria-label="Note tape showing the same nine notes as the staff">
+          <g stroke="#1A2225" stroke-width="1"><path d="M390 0v62M650 0v62"></path></g>
+          <g fill="#46D7A1" opacity="0.2">
+            <rect x="148" y="48" width="54" height="9" rx="4.5"></rect>
+            <rect x="213" y="37" width="54" height="9" rx="4.5"></rect>
+            <rect x="278" y="26" width="54" height="9" rx="4.5"></rect>
+            <rect x="343" y="15" width="54" height="9" rx="4.5"></rect>
+            <rect x="408" y="4" width="54" height="9" rx="4.5"></rect>
+            <rect x="473" y="15" width="54" height="9" rx="4.5"></rect>
+            <rect x="538" y="26" width="54" height="9" rx="4.5"></rect>
+            <rect x="603" y="37" width="54" height="9" rx="4.5"></rect>
+            <rect x="718" y="48" width="140" height="9" rx="4.5"></rect>
+          </g>
+          <rect x="148" y="48" width="54" height="9" rx="4.5" fill="#46D7A1"></rect>
+          <path d="M160 0v62" stroke="#46D7A1" stroke-width="1.6" opacity="0.55"></path>
+        </svg>
+      </div>
+
+      <!-- keyboard: the one fixed thing on the screen -->
+      <div style="height: 182px; flex-shrink: 0; position: relative; background: #0A0D0E; border-top: 1px solid #161D20;">
+
+        <!-- transport, floating -->
+        <div style="position: absolute; top: -26px; left: 50%; transform: translateX(-50%); height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 6px; border: 1px solid #273034; border-radius: 26px; background: #151B1E; box-shadow: 0 10px 34px rgba(0,0,0,0.55); z-index: 2;">
+          <button type="button" aria-label="Play" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 20px; background: #46D7A1; color: #0A0D0E; cursor: pointer;">
+            <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M5.4 3.6 14 9l-8.6 5.4Z" fill="currentColor"></path></svg>
+          </button>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C6D0D3; min-width: 88px;">bar 1 · beat 1</span>
+          <span style="width: 1px; height: 20px; background: #273034;"></span>
+          <label for="tempo" style="font-family: 'Instrument Serif', Georgia, serif; font-size: 16px; color: #8C9A9F; cursor: pointer;">♩</label>
+          <input id="tempo" type="range" min="40" max="160" value="72" style="width: 92px;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C6D0D3; min-width: 22px;">72</span>
+          <span style="width: 1px; height: 20px; background: #273034;"></span>
+          <span style="display: flex; align-items: center; gap: 2px;">
+            <button type="button" onClick="{{handsL}}" style="{{handsLS}}">L</button>
+            <button type="button" onClick="{{handsB}}" style="{{handsBS}}">Both</button>
+            <button type="button" onClick="{{handsR}}" style="{{handsRS}}">R</button>
+          </span>
+          <span style="width: 1px; height: 20px; background: #273034;"></span>
+          <button type="button" aria-label="Metronome on" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 9px; background: rgba(70,215,161,0.14); color: #46D7A1; cursor: pointer;">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h4l2.6 12H4.4z"></path><path d="M11.9 5.6 5.5 12.4"></path></svg>
+          </button>
+          <button type="button" style="height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 0; border-radius: 9px; background: transparent; color: #8C9A9F; cursor: pointer;">
+            <svg width="15" height="15" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.4 7.4v-1a2.2 2.2 0 0 1 2.2-2.2h7"></path><path d="m11.6 2.2 2.2 2 -2.2 2"></path><path d="M13.6 10.6v1a2.2 2.2 0 0 1-2.2 2.2h-7"></path><path d="m6.4 11.8-2.2 2 2.2 2"></path></svg>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">1–3</span>
+          </button>
+        </div>
+
+        <svg viewBox="0 0 996 182" width="100%" style="display: block;" role="img" aria-label="Three-octave keyboard with the right hand resting in C position, thumb on middle C">
+          <g>
+            <rect x="36" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="80" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="124" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="168" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="212" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="256" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="300" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="344" y="14" width="43" height="160" fill="#8BE9C6"></rect>
+            <rect x="388" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="432" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="476" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="520" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="564" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="608" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="652" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="696" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="740" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="784" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="828" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="872" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+            <rect x="916" y="14" width="43" height="160" fill="#E4EAEC"></rect>
+          </g>
+          <g fill="#B4C0C3"><rect x="36" y="170" width="923" height="4"></rect></g>
+          <g fill="#14191B">
+            <rect x="67" y="14" width="26" height="102" rx="3"></rect><rect x="111" y="14" width="26" height="102" rx="3"></rect>
+            <rect x="199" y="14" width="26" height="102" rx="3"></rect><rect x="243" y="14" width="26" height="102" rx="3"></rect><rect x="287" y="14" width="26" height="102" rx="3"></rect>
+            <rect x="375" y="14" width="26" height="102" rx="3"></rect><rect x="419" y="14" width="26" height="102" rx="3"></rect>
+            <rect x="507" y="14" width="26" height="102" rx="3"></rect><rect x="551" y="14" width="26" height="102" rx="3"></rect><rect x="595" y="14" width="26" height="102" rx="3"></rect>
+            <rect x="683" y="14" width="26" height="102" rx="3"></rect><rect x="727" y="14" width="26" height="102" rx="3"></rect>
+            <rect x="815" y="14" width="26" height="102" rx="3"></rect><rect x="859" y="14" width="26" height="102" rx="3"></rect><rect x="903" y="14" width="26" height="102" rx="3"></rect>
+          </g>
+          <g font-family="'JetBrains Mono',monospace" font-size="10" fill="#5A6367" text-anchor="middle">
+            <text x="57" y="164">C3</text><text x="365" y="164">C4</text><text x="673" y="164">C5</text>
+          </g>
+
+        </svg>
+
+        <sc-if value="{{showLeft}}" hint-placeholder-val="{{true}}">
+        <svg viewBox="0 0 996 182" width="100%" style="display: block; position: absolute; left: 0; top: 0;" aria-hidden="true">
+          <rect x="50" y="24" width="190" height="44" rx="20" fill="rgba(70,215,161,0.05)" stroke="#46D7A1" stroke-opacity="0.32" stroke-width="1.4" stroke-dasharray="5 4"></rect>
+          <text x="145" y="52" font-family="'Instrument Sans',sans-serif" font-size="12" fill="#6FBB9C" text-anchor="middle">left hand · free</text>
+        </svg>
+        </sc-if>
+
+        <sc-if value="{{showRight}}" hint-placeholder-val="{{true}}">
+        <svg viewBox="0 0 996 182" width="100%" style="display: block; position: absolute; left: 0; top: 0;" aria-hidden="true">
+          <rect x="350" y="24" width="207" height="46" rx="21" fill="rgba(70,215,161,0.13)" stroke="#46D7A1" stroke-opacity="0.5" stroke-width="1.4"></rect>
+          <g fill="rgba(70,215,161,0.16)" stroke="#46D7A1" stroke-opacity="0.45" stroke-width="1.2">
+            <rect x="402" y="64" width="15" height="70" rx="7.5"></rect>
+            <rect x="446" y="64" width="15" height="70" rx="7.5"></rect>
+            <rect x="490" y="64" width="15" height="70" rx="7.5"></rect>
+            <rect x="534" y="64" width="15" height="70" rx="7.5"></rect>
+          </g>
+          <rect x="358" y="64" width="15" height="70" rx="7.5" fill="rgba(70,215,161,0.55)" stroke="#46D7A1" stroke-width="1.2"></rect>
+          <g font-family="'Instrument Sans',sans-serif" font-size="11" font-weight="600" text-anchor="middle">
+            <circle cx="365.5" cy="126" r="9" fill="#0A0D0E"></circle><text x="365.5" y="130" fill="#46D7A1">1</text>
+            <circle cx="409.5" cy="126" r="9" fill="#0A0D0E" opacity="0.72"></circle><text x="409.5" y="130" fill="#9FEBCE">2</text>
+            <circle cx="453.5" cy="126" r="9" fill="#0A0D0E" opacity="0.72"></circle><text x="453.5" y="130" fill="#9FEBCE">3</text>
+            <circle cx="497.5" cy="126" r="9" fill="#0A0D0E" opacity="0.72"></circle><text x="497.5" y="130" fill="#9FEBCE">4</text>
+            <circle cx="541.5" cy="126" r="9" fill="#0A0D0E" opacity="0.72"></circle><text x="541.5" y="130" fill="#9FEBCE">5</text>
+          </g>
+        </svg>
+        </sc-if>
+      </div>
+    </main>
+
+    <!-- one panel, never four tabs -->
+    <aside style="width: 392px; flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; padding: 26px 24px;">
+
+      <sc-if value="{{showLesson}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; flex-direction: column; gap: 22px;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #6E7C81;">HANDS</span>
+          <span style="display: flex; align-items: center; gap: 12px;">
+            <svg width="54" height="24" viewBox="0 0 54 24" aria-hidden="true"><rect x="0" y="0" width="9.6" height="24" rx="2" fill="#46D7A1"></rect><rect x="11" y="0" width="9.6" height="24" rx="2" fill="#2E3A3E"></rect><rect x="22" y="0" width="9.6" height="24" rx="2" fill="#2E3A3E"></rect><rect x="33" y="0" width="9.6" height="24" rx="2" fill="#2E3A3E"></rect><rect x="44" y="0" width="9.6" height="24" rx="2" fill="#2E3A3E"></rect></svg>
+            <span style="display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-size: 13.5px; color: #E9EEF0;">Right — C position</span>
+              <span style="font-size: 12px; color: #8C9A9F;">thumb on C4, keys C D E F G</span>
+            </span>
+          </span>
+          <span style="display: flex; align-items: center; gap: 12px; opacity: 0.45;">
+            <svg width="54" height="24" viewBox="0 0 54 24" aria-hidden="true"><rect x="0" y="0" width="9.6" height="24" rx="2" fill="#2E3A3E"></rect><rect x="11" y="0" width="9.6" height="24" rx="2" fill="#2E3A3E"></rect><rect x="22" y="0" width="9.6" height="24" rx="2" fill="#2E3A3E"></rect><rect x="33" y="0" width="9.6" height="24" rx="2" fill="#2E3A3E"></rect><rect x="44" y="0" width="9.6" height="24" rx="2" fill="#2E3A3E"></rect></svg>
+            <span style="display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-size: 13.5px; color: #E9EEF0;">Left — no fixed position</span>
+              <span style="font-size: 12px; color: #8C9A9F;">resting, nothing to play</span>
+            </span>
+          </span>
+        </div>
+
+        <div style="height: 1px; background: #1E2629;"></div>
+
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #C6D0D3;">Right hand in C position: thumb on middle C. Walk up to G with fingers 1‑2‑3‑4‑5 and back down. Keep every finger resting on its own key.</p>
+
+        <div style="height: 1px; background: #1E2629;"></div>
+
+        <div style="display: flex; flex-direction: column; gap: 11px;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #6E7C81;">POSTURE</span>
+          <span style="display: flex; gap: 11px; align-items: flex-start;"><svg width="6" height="6" viewBox="0 0 6 6" style="margin-top: 7px; flex-shrink: 0;" aria-hidden="true"><circle cx="3" cy="3" r="3" fill="#46D7A1"></circle></svg><span style="font-size: 13.5px; line-height: 1.5; color: #C6D0D3;">Curve the fingers; play on the tips.</span></span>
+          <span style="display: flex; gap: 11px; align-items: flex-start;"><svg width="6" height="6" viewBox="0 0 6 6" style="margin-top: 7px; flex-shrink: 0;" aria-hidden="true"><circle cx="3" cy="3" r="3" fill="#46D7A1"></circle></svg><span style="font-size: 13.5px; line-height: 1.5; color: #C6D0D3;">Say the finger numbers out loud as you play.</span></span>
+          <span style="display: flex; gap: 11px; align-items: flex-start;"><svg width="6" height="6" viewBox="0 0 6 6" style="margin-top: 7px; flex-shrink: 0;" aria-hidden="true"><circle cx="3" cy="3" r="3" fill="#46D7A1"></circle></svg><span style="font-size: 13.5px; line-height: 1.5; color: #C6D0D3;">Keep the wrist level with the hand.</span></span>
+        </div>
+
+        <div style="height: 1px; background: #1E2629;"></div>
+
+        <span style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px 0 10px; border: 1px solid #242D31; border-radius: 8px; background: transparent; color: #96A3A8; cursor: pointer;">
+            <svg width="15" height="15" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 15h11.6M4.6 11.8 11.9 4.5l1.7 1.7-7.3 7.3-2.4.7z"></path></svg>
+            <span style="font-size: 12.5px;">Edit script</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #647176;">⌘E</span>
+          </button>
+        </span>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{showPractice}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; flex-direction: column; gap: 22px;">
+        <div style="display: flex; align-items: flex-end; gap: 16px;">
+          <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 62px; line-height: 0.85; color: #46D7A1;">92</span>
+          <span style="display: flex; flex-direction: column; gap: 7px; padding-bottom: 4px;">
+            <svg width="98" height="16" viewBox="0 0 98 16" aria-hidden="true"><g fill="#46D7A1"><path d="M8 1l2 4.2 4.6.6-3.4 3.2.9 4.6L8 11.4 3.9 13.6l.9-4.6L1.4 5.8 6 5.2z"></path><path d="M28 1l2 4.2 4.6.6-3.4 3.2.9 4.6L28 11.4l-4.1 2.2.9-4.6-3.4-3.2 4.6-.6z"></path><path d="M48 1l2 4.2 4.6.6-3.4 3.2.9 4.6L48 11.4l-4.1 2.2.9-4.6-3.4-3.2 4.6-.6z"></path><path d="M68 1l2 4.2 4.6.6-3.4 3.2.9 4.6L68 11.4l-4.1 2.2.9-4.6-3.4-3.2 4.6-.6z"></path></g><path d="M88 1l2 4.2 4.6.6-3.4 3.2.9 4.6L88 11.4l-4.1 2.2.9-4.6-3.4-3.2 4.6-.6z" fill="none" stroke="#3B4B4F" stroke-width="1.2"></path></svg>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8C9A9F;">best 95 · 6 attempts</span>
+          </span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 13px;">
+          <span style="display: flex; flex-direction: column; gap: 6px;">
+            <span style="display: flex; justify-content: space-between; font-size: 12.5px; color: #96A3A8;"><span>Right notes</span><span style="font-family: 'JetBrains Mono', monospace; color: #C6D0D3;">96%</span></span>
+            <span style="display: block; height: 4px; border-radius: 2px; background: #1E2629;"><span style="display: block; width: 96%; height: 4px; border-radius: 2px; background: #46D7A1;"></span></span>
+          </span>
+          <span style="display: flex; flex-direction: column; gap: 6px;">
+            <span style="display: flex; justify-content: space-between; font-size: 12.5px; color: #96A3A8;"><span>In time</span><span style="font-family: 'JetBrains Mono', monospace; color: #C6D0D3;">88%</span></span>
+            <span style="display: block; height: 4px; border-radius: 2px; background: #1E2629;"><span style="display: block; width: 88%; height: 4px; border-radius: 2px; background: #46D7A1;"></span></span>
+          </span>
+        </div>
+
+        <div style="height: 1px; background: #1E2629;"></div>
+
+        <div style="display: flex; flex-direction: column; gap: 13px;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #6E7C81;">WHAT TO FIX — BAR 2</span>
+          <span style="display: flex; align-items: center; gap: 11px;"><svg width="7" height="7" viewBox="0 0 7 7" style="flex-shrink: 0;" aria-hidden="true"><circle cx="3.5" cy="3.5" r="3.5" fill="#F08079"></circle></svg><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #E9EEF0; width: 34px;">E4</span><span style="font-size: 13px; color: #96A3A8;">not heard</span></span>
+          <span style="display: flex; align-items: center; gap: 11px;"><svg width="7" height="7" viewBox="0 0 7 7" style="flex-shrink: 0;" aria-hidden="true"><circle cx="3.5" cy="3.5" r="3.5" fill="#E9B44C"></circle></svg><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #E9EEF0; width: 34px;">F4</span><span style="font-size: 13px; color: #96A3A8;">you played G4</span></span>
+          <span style="display: flex; align-items: center; gap: 11px;"><svg width="7" height="7" viewBox="0 0 7 7" style="flex-shrink: 0;" aria-hidden="true"><circle cx="3.5" cy="3.5" r="3.5" fill="#5D6B70"></circle></svg><span style="font-size: 13px; color: #96A3A8;">You tend to play late — about 0.2 of a beat.</span></span>
+        </div>
+
+        <div style="height: 1px; background: #1E2629;"></div>
+
+        <div style="display: flex; flex-direction: column; gap: 11px;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #6E7C81;">ATTEMPTS</span>
+          <span style="display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: #C6D0D3;"><span>just now</span><span style="font-family: 'JetBrains Mono', monospace; color: #46D7A1;">92</span></span>
+          <span style="display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: #8C9A9F;"><span>2 min ago</span><span style="font-family: 'JetBrains Mono', monospace;">95</span></span>
+          <span style="display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: #8C9A9F;"><span>5 min ago</span><span style="font-family: 'JetBrains Mono', monospace;">78</span></span>
+        </div>
+
+        <p style="margin: 0; font-size: 11.5px; line-height: 1.55; color: #6E7C81;">One note at a time is heard, so two‑hand scoring is approximate. Sound stays in this tab — nothing is recorded or uploaded.</p>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{isEar}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; flex-direction: column; gap: 18px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <label for="bpm" style="font-size: 12.5px; color: #8C9A9F;">Quantise at</label>
+          <input id="bpm" type="text" value="80" style="width: 54px; height: 30px; padding: 0 9px; border: 1px solid #242D31; border-radius: 7px; background: #121719; color: #E9EEF0; font-family: 'JetBrains Mono', monospace; font-size: 12px;">
+          <span style="font-size: 12.5px; color: #8C9A9F;">bpm</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column;">
+          <span style="display: flex; gap: 10px; padding: 0 0 9px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.08em; color: #6E7C81; border-bottom: 1px solid #1E2629;"><span style="width: 22px;">#</span><span style="width: 42px;">NOTE</span><span style="width: 62px; text-align: right;">HZ</span><span style="width: 40px; text-align: right;">¢</span><span style="width: 52px; text-align: right;">START</span><span style="flex-grow: 1; text-align: right;">LEN</span></span>
+          <span style="display: flex; gap: 10px; padding: 9px 0; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #C6D0D3; border-bottom: 1px solid #161D20;"><span style="width: 22px; color: #6E7C81;">9</span><span style="width: 42px; color: #46D7A1;">A3</span><span style="width: 62px; text-align: right;">220.4</span><span style="width: 40px; text-align: right;">+3</span><span style="width: 52px; text-align: right;">4.2.0</span><span style="flex-grow: 1; text-align: right;">1/4</span></span>
+          <span style="display: flex; gap: 10px; padding: 9px 0; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #C6D0D3; border-bottom: 1px solid #161D20;"><span style="width: 22px; color: #6E7C81;">8</span><span style="width: 42px;">C4</span><span style="width: 62px; text-align: right;">261.8</span><span style="width: 40px; text-align: right;">+1</span><span style="width: 52px; text-align: right;">3.4.0</span><span style="flex-grow: 1; text-align: right;">1/4</span></span>
+          <span style="display: flex; gap: 10px; padding: 9px 0; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #C6D0D3; border-bottom: 1px solid #161D20;"><span style="width: 22px; color: #6E7C81;">7</span><span style="width: 42px;">D4</span><span style="width: 62px; text-align: right;">293.9</span><span style="width: 40px; text-align: right;">−2</span><span style="width: 52px; text-align: right;">3.3.0</span><span style="flex-grow: 1; text-align: right;">1/4</span></span>
+          <span style="display: flex; gap: 10px; padding: 9px 0; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #C6D0D3; border-bottom: 1px solid #161D20;"><span style="width: 22px; color: #6E7C81;">6</span><span style="width: 42px;">E4</span><span style="width: 62px; text-align: right;">329.4</span><span style="width: 40px; text-align: right;">+4</span><span style="width: 52px; text-align: right;">3.2.0</span><span style="flex-grow: 1; text-align: right;">1/4</span></span>
+          <span style="display: flex; gap: 10px; padding: 9px 0; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #C6D0D3; border-bottom: 1px solid #161D20;"><span style="width: 22px; color: #6E7C81;">5</span><span style="width: 42px;">F4</span><span style="width: 62px; text-align: right;">349.1</span><span style="width: 40px; text-align: right;">−1</span><span style="width: 52px; text-align: right;">3.1.0</span><span style="flex-grow: 1; text-align: right;">1/4</span></span>
+          <span style="display: flex; gap: 10px; padding: 9px 0; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #C6D0D3; border-bottom: 1px solid #161D20;"><span style="width: 22px; color: #6E7C81;">4</span><span style="width: 42px;">G4</span><span style="width: 62px; text-align: right;">392.6</span><span style="width: 40px; text-align: right;">+6</span><span style="width: 52px; text-align: right;">2.4.0</span><span style="flex-grow: 1; text-align: right;">1/4</span></span>
+        </div>
+
+        <div style="height: 1px; background: #1E2629;"></div>
+
+        <div style="display: flex; flex-direction: column; gap: 11px;">
+          <span style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 12.5px; color: #8C9A9F;">Input</span><span style="font-size: 12.5px; color: #C6D0D3;">Default microphone</span></span>
+          <span style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 12.5px; color: #8C9A9F;">Gate</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C6D0D3;">−55 dB</span></span>
+          <span style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 12.5px; color: #8C9A9F;">Reference</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C6D0D3;">A4 = 440 Hz</span></span>
+        </div>
+
+        <p style="margin: 0; font-size: 11.5px; line-height: 1.55; color: #6E7C81;">Sound stays in this browser tab: nothing is recorded or uploaded. Switch off echo cancellation if notes read a semitone off.</p>
+      </div>
+      </sc-if>
+    </aside>
+  </div>
+</div>
+</x-dc>
+
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["learn","practice","ear"],"default":"practice","section":"State"},"hands":{"editor":"enum","options":["left","both","right"],"default":"right","section":"State"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var s = this.state || {};
+    var self = this;
+    var mode = s.mode || this.props.mode || 'learn';
+    var hands = s.hands || this.props.hands || 'right';
+    var panel = s.panel || (mode === 'practice' ? 'practice' : 'lesson');
+
+    function goMode(m) {
+      return function () { self.setState({ mode: m, panel: m === 'practice' ? 'practice' : 'lesson' }); };
+    }
+    function setHands(h) { return function () { self.setState({ hands: h }); }; }
+    function setPanel(p) { return function () { self.setState({ panel: p }); }; }
+
+    var railBase = 'width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:0;border-radius:12px;cursor:pointer;';
+    var railOn = railBase + 'background:rgba(70,215,161,0.14);color:#46D7A1;';
+    var railOff = railBase + 'background:transparent;color:#647176;';
+
+    var tabBase = 'display:flex;align-items:center;padding:0 2px;margin-right:22px;border:0;background:transparent;font-size:13px;cursor:pointer;';
+    var tabOn = tabBase + 'color:#E9EEF0;box-shadow:inset 0 -2px 0 0 #46D7A1;';
+    var tabOff = tabBase + 'color:#7E8C91;';
+
+    var segBase = 'height:26px;min-width:26px;padding:0 8px;display:flex;align-items:center;justify-content:center;border:0;border-radius:7px;font-family:\'JetBrains Mono\',monospace;font-size:11px;cursor:pointer;';
+    var segOn = segBase + 'background:rgba(70,215,161,0.14);color:#46D7A1;';
+    var segOff = segBase + 'background:transparent;color:#7E8C91;';
+
+    var listenBase = 'height:30px;display:flex;align-items:center;gap:7px;padding:0 11px 0 9px;border-radius:8px;cursor:pointer;';
+    var listenOn = listenBase + 'border:1px solid rgba(70,215,161,0.4);background:rgba(70,215,161,0.14);color:#46D7A1;';
+    var listenOff = listenBase + 'border:1px solid #242D31;background:transparent;color:#96A3A8;';
+
+    return {
+      modeName: mode === 'learn' ? 'Learn' : (mode === 'practice' ? 'Practice' : 'Ear'),
+      isEar: mode === 'ear',
+      notEar: mode !== 'ear',
+      showScore: mode !== 'ear',
+      ribbon: mode !== 'learn',
+      showLesson: mode !== 'ear' && panel === 'lesson',
+      showPractice: mode !== 'ear' && panel === 'practice',
+      showRight: hands !== 'left',
+      showLeft: hands !== 'right',
+      railLearn: mode === 'learn' ? railOn : railOff,
+      railPractice: mode === 'practice' ? railOn : railOff,
+      railEar: mode === 'ear' ? railOn : railOff,
+      tabLessonS: panel === 'lesson' ? tabOn : tabOff,
+      tabPracticeS: panel === 'practice' ? tabOn : tabOff,
+      handsLS: hands === 'left' ? segOn : segOff,
+      handsBS: hands === 'both' ? segOn : segOff,
+      handsRS: hands === 'right' ? segOn : segOff,
+      listenBtn: mode !== 'learn' ? listenOn : listenOff,
+      goLearn: goMode('learn'),
+      goPractice: goMode('practice'),
+      goEar: goMode('ear'),
+      toggleListen: mode === 'learn' ? goMode('practice') : goMode('learn'),
+      handsL: setHands('left'),
+      handsB: setHands('both'),
+      handsR: setHands('right'),
+      tabLesson: setPanel('lesson'),
+      tabPractice: setPanel('practice')
+    };
+  }
+}
+</script>
+</body>
+</html>

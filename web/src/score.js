@@ -55,7 +55,9 @@ export function renderPage(page, opts = {}) {
     class: "score" + (opts.print ? " print" : ""), preserveAspectRatio: "xMinYMin meet",
   });
   if (!opts.print) svg.appendChild(el("rect", { x: 0, y: 0, width: page.width, height: page.height, class: "bg" }));
-  for (const t of page.texts) svg.appendChild(textNode(t));
+  // On screen the title, composer and tempo live in the head above the staff
+  // (and the title is the lesson switcher), so the page texts are printed only.
+  if (!opts.noTexts) for (const t of page.texts) svg.appendChild(textNode(t));
   for (const system of page.systems) svg.appendChild(renderSystem(system, opts));
   return svg;
 }
@@ -226,9 +228,14 @@ export class ScoreView {
     if (gen !== this._pending) return;
     this.layout = layout;
     const page = layout.pages[0];
-    const svg = renderPage(page, { interactive: true });
+    const svg = renderPage(page, { interactive: true, noTexts: true });
+    // Crop the band the engraver keeps for the title block: the head above
+    // the staff carries the title, the composer and the tempo.
+    const first = page.systems[0];
+    this.topSp = first ? Math.max(0, first.y - 1.5) : 0;
+    svg.setAttribute("viewBox", `0 ${this.topSp} ${page.width} ${page.height - this.topSp}`);
     svg.setAttribute("width", Math.round(page.width * this.scale));
-    svg.setAttribute("height", Math.round(page.height * this.scale));
+    svg.setAttribute("height", Math.round((page.height - this.topSp) * this.scale));
     this.container.replaceChildren(svg);
     this.svg = svg;
     this.heads = Array.from(svg.querySelectorAll(".note")).map((node) => ({
@@ -238,6 +245,36 @@ export class ScoreView {
     this.applyDim();
     this.setPosition(this.position, true);
     this.markResults(this.results);
+    this.emitMapper(true);
+  }
+
+  /* The x-axis of the system under the cursor, in the container's pixels:
+   * { from, to, xOf(division) }. The tape draws in this space so that a bar
+   * sits under the bar above it. Null while nothing is engraved. */
+  mapper() {
+    const system = this.activeSystem || (this.layout && this.layout.pages[0].systems[0]);
+    if (!system || !system.measures.length) return null;
+    const scale = this.scale, left = this.container.scrollLeft || 0;
+    const from = system.measures[0].start, to = system.measures.at(-1).end;
+    return {
+      from, to,
+      xOf: (division) => {
+        if (division <= from) return system.x0 * scale - left;
+        if (division >= to) return system.x1 * scale - left;
+        for (const m of system.measures) {
+          if (division >= m.start && division < m.end) return measureX(m, division) * scale - left;
+        }
+        return system.x1 * scale - left;
+      },
+    };
+  }
+
+  emitMapper(force = false) {
+    if (!this.onMapper) return;
+    const key = this.activeSystem ? this.activeSystem.y : -1;
+    if (!force && key === this._mapperKey) return;
+    this._mapperKey = key;
+    this.onMapper(this.mapper());
   }
 
   /* Colour missed targets (red) and wrong notes (amber) after an attempt. */
@@ -280,12 +317,15 @@ export class ScoreView {
         c.node.setAttribute("visibility", "hidden");
       }
     }
+    if (activeSystem) this.activeSystem = activeSystem;
     if (activeSystem && this.settings.get("view.follow")) this.scrollTo(activeSystem, force);
+    this.emitMapper();
   }
 
   scrollTo(system, force) {
+    const top0 = this.topSp || 0;
     const first = this.layout && this.layout.pages[0].systems[0] === system;
-    const top = first ? 0 : (system.y - 1) * this.scale, bottom = (system.y + 26) * this.scale;
+    const top = first ? 0 : (system.y - top0 - 1) * this.scale, bottom = (system.y - top0 + 26) * this.scale;
     const box = this.container;
     if (force || top < box.scrollTop || bottom > box.scrollTop + box.clientHeight) {
       box.scrollTo({ top: Math.max(0, top - 12), behavior: force ? "auto" : "smooth" });

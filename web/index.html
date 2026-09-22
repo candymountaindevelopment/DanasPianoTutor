@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Danas Piano Tutor</title>
 <meta name="description" content="Piano lessons for beginners, scripted as text: listen at any speed with a metronome, watch the hands and finger numbers on the keys, and print the sheet music.">
+<link rel="stylesheet" href="vendor/fonts.css">
 <link rel="stylesheet" href="styles.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%2314161a'/><text x='8' y='12.5' font-size='12' text-anchor='middle' fill='%234fd1a5'>♩</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%230E1214'/><text x='8' y='12.5' font-size='12' text-anchor='middle' fill='%2346D7A1'>♩</text></svg>">
 </head>
 <body>
 <noscript><p class="noscript">Danas Piano Tutor runs entirely in your browser and needs JavaScript enabled.</p></noscript>
@@ -22,112 +23,166 @@
   </div>
 </div>
 
-<div id="app" class="app">
-  <header class="toolbar">
-    <span class="brand">Danas Piano Tutor</span>
-    <span data-feature="tools.files">
-      <button id="btn-open" title="Open a lesson file (.json)">Open…</button>
-      <input id="file-input" type="file" accept=".json,application/json" hidden>
-      <button id="btn-new" title="Start from the template">New</button>
-      <button id="btn-save" title="Download the script as a .json file">Save</button>
-      <button id="btn-keep" title="Keep the script in this browser">Keep</button>
-      <select id="mine" title="Lessons kept in this browser"><option value="">My lessons…</option></select>
-    </span>
-    <select id="examples" data-feature="tools.examples" title="Bundled example lessons"><option value="">Examples…</option></select>
-    <span data-feature="tools.export">
-      <button id="btn-musicxml" title="Export MusicXML with fingering (opens in MuseScore etc.)">MusicXML</button>
-      <button id="btn-wav" title="Export the current playback as a WAV file">WAV</button>
-    </span>
-    <button id="btn-print" data-feature="tools.print" title="Print, or save as PDF from the print dialog">Print / PDF</button>
-    <button id="btn-share" data-feature="tools.share" title="Copy a link that carries this lesson">Share</button>
+<div id="app" class="app" data-mode="learn">
+
+  <!-- 52 px: the mode you are in, the palette, Listen, and the rest. -->
+  <header class="bar">
+    <span class="brand">Danas&nbsp;Tutor</span>
+    <span class="bar-mode" id="bar-mode">Learn</span>
+    <button class="bar-btn kbd-btn" id="btn-palette" title="Everything else (Ctrl+K)">⌘K</button>
+    <label class="listen" id="listen-wrap" data-feature="play.listen" title="Hear what you play, and score the attempt">
+      <input type="checkbox" id="listen"><span>Listen</span>
+    </label>
     <span class="spacer"></span>
-    <button id="btn-help" data-feature="tools.help" title="Lesson scripting reference (F1)">Help</button>
-    <a id="btn-ear" class="button" data-feature="tools.ear" href="listen/" target="_blank" rel="noopener" title="Danas Ear: hear the pitch from the microphone (opens in a new tab)">Ear</a>
-    <button id="btn-about" title="About">About</button>
+    <span class="heard" id="heard"></span>
+    <button class="bar-btn" id="btn-more" title="More">⋯</button>
   </header>
 
-  <div class="transport">
-    <button id="btn-play" class="primary" title="Play / pause (Space)">▶ Play</button>
-    <button id="btn-stop" title="Stop (Esc)">■</button>
-    <span id="position" class="position">bar 1 · beat 1</span>
-    <span class="group" data-feature="play.tempo">
-      <label>Tempo</label>
-      <input id="tempo-slider" type="range" min="25" max="150" value="100" title="Speed as a percentage of the lesson tempo">
-      <input id="tempo-bpm" type="number" min="20" max="300" value="80" class="bpm"> <span>bpm</span>
-      <span id="tempo-pct" class="dim">100%</span>
-    </span>
-    <select id="hands" data-feature="play.hands" title="Which hands play">
-      <option value="both">Both hands</option><option value="right">Right hand only</option><option value="left">Left hand only</option>
-    </select>
-    <label data-feature="play.metronome"><input id="metronome" type="checkbox" checked> Metronome</label>
-    <label data-feature="play.countIn">Count-in <select id="count-in"><option value="0">off</option><option value="1" selected>1 bar</option><option value="2">2 bars</option></select></label>
-    <span class="group" data-feature="play.loop">
-      <label><input id="loop" type="checkbox"> Loop</label>
-      <label>bars <input id="bar-from" type="number" min="1" value="1" class="bar"> to <input id="bar-to" type="number" min="1" value="1" class="bar"></label>
-      <button id="btn-whole">Whole piece</button>
-    </span>
+  <div class="body">
+    <!-- 52 px rail: three modes, and the switches at its foot. -->
+    <nav class="rail">
+      <button class="rail-btn on" data-mode="learn" title="Learn — read it and play along">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5h8v14H3zM13 5.5h8v14h-8z"/><path d="M3 10h8M13 10h8"/></svg><span>Learn</span>
+      </button>
+      <button class="rail-btn" data-mode="practice" data-feature="play.listen" title="Practice — play it yourself and be scored">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="16.5" r="4.2"/><path d="M12 12.3V3.5M12 3.5l6 2"/></svg><span>Practice</span>
+      </button>
+      <button class="rail-btn" data-mode="ear" data-feature="tools.ear" title="Ear — free listening, pitch only">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12h3l3-7 4 15 3-10 2 2h4"/></svg><span>Ear</span>
+      </button>
+      <span class="spacer"></span>
+      <button class="rail-btn" id="btn-switches" data-feature="app.settings" title="Feature switches — a teacher sets these once">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="2.8"/><circle cx="15" cy="16" r="2.8"/><path d="M3 8h3.2M11.8 8H21M3 16h9.2M17.8 16H21"/></svg><span>Set up</span>
+      </button>
+    </nav>
+
+    <!-- The stage: title, staff, ribbon, tape, keys. Nothing here moves between modes. -->
+    <main class="stage">
+      <div class="head">
+        <button class="title" id="lesson-title" title="The lessons in this document">Loading…</button>
+        <div class="meta" id="lesson-meta"></div>
+        <div class="menu" id="lesson-menu" hidden></div>
+      </div>
+
+      <div class="staff-box">
+        <div id="score" class="score-scroll"></div>
+        <div class="trace-box" id="trace-box" hidden><canvas id="trace"></canvas></div>
+      </div>
+
+      <div class="ribbon" id="ribbon" hidden>
+        <span class="r-note" id="r-note">—</span>
+        <span class="r-hz mono" id="r-hz"></span>
+        <span class="r-cents mono" id="r-cents"></span>
+        <div class="r-meter-box"><canvas id="r-meter"></canvas></div>
+        <span class="r-label">clarity</span>
+        <div class="r-spark-box"><canvas id="r-spark"></canvas></div>
+        <span class="r-clarity mono" id="r-clarity">—</span>
+      </div>
+
+      <div class="tape-box" data-feature="view.lane"><canvas id="lane"></canvas></div>
+
+      <div class="keybed" data-feature="view.keyboard">
+        <div class="keys-box"><canvas id="keys"></canvas></div>
+        <!-- Seven controls, every one of which changes while you play. -->
+        <div class="transport" id="transport">
+          <button id="btn-play" class="play" title="Play / pause (space)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l12 7-12 7z"/></svg></button>
+          <span class="pos mono" id="position">bar 1 · beat 1</span>
+          <span class="t-group" data-feature="play.tempo">
+            <span class="t-note">♩</span>
+            <input type="range" id="tempo-slider" min="50" max="150" value="100" title="Tempo">
+            <input type="number" id="tempo-bpm" class="bpm mono" min="20" max="240" value="80" title="Beats per minute">
+          </span>
+          <span class="seg" data-feature="play.hands" id="seg-hands">
+            <button data-hands="left" title="Left hand only">L</button>
+            <button data-hands="both" class="on" title="Both hands">Both</button>
+            <button data-hands="right" title="Right hand only">R</button>
+          </span>
+          <button id="btn-metro" class="t-btn on" data-feature="play.metronome" title="Metronome">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.5h5l3.5 17h-12z"/><path d="M12 19.5L16.5 7"/></svg>
+          </button>
+          <span class="t-group" data-feature="play.loop">
+            <button id="btn-loop" class="t-btn" title="Practice loop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 9.5h13l-3.2-3.2M19.5 14.5h-13l3.2 3.2"/></svg></button>
+            <input type="number" id="bar-from" class="bar mono" min="1" value="1" title="First bar">
+            <span class="dash">–</span>
+            <input type="number" id="bar-to" class="bar mono" min="1" value="1" title="Last bar">
+          </span>
+        </div>
+      </div>
+    </main>
+
+    <!-- 392 px: what the mode is for. -->
+    <aside class="panel" id="panel">
+      <section class="pane" id="pane-learn" data-feature="view.lessonPanel">
+        <div id="info" class="info"></div>
+      </section>
+
+      <section class="pane" id="pane-practice" hidden>
+        <div id="result" class="result" hidden></div>
+        <p class="hint" id="practice-hint">Tick <b>Listen</b> in the top bar, then press play. The tutor keeps the count-in and the metronome and does not play the piano back at you; the attempt is scored when it ends. One hand at a time scores best.</p>
+        <div class="sub">Attempts</div>
+        <div class="scroll"><table id="attempts"><tbody></tbody></table></div>
+      </section>
+
+      <section class="pane" id="pane-ear" hidden>
+        <div class="row">
+          <span class="sub">Notes heard</span><span class="spacer"></span>
+          <button id="btn-ear-clear">Clear</button>
+          <button id="btn-ear-json" title="Download the note log as JSON">JSON</button>
+          <button id="btn-ear-script" title="Copy the notes as a lesson line at this tempo">Copy as script</button>
+        </div>
+        <div class="scroll"><table id="ear-log"><thead><tr><th>Note</th><th>Hz</th><th>¢</th><th>At</th><th>Length</th></tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section class="pane" id="pane-switches" hidden>
+        <p class="hint">Turn parts of the app off or on. Choices are remembered in this browser; a link can fix them for a student.</p>
+        <div class="row">
+          <select id="preset"><option value="">Preset…</option></select>
+          <button id="btn-copy-link">Copy link</button>
+          <button id="btn-reset-settings">Defaults</button>
+        </div>
+        <div class="row">
+          <label title="How many white keys a hand comfortably covers. Blank = the lesson's own span.">Hand span
+            <input id="span" type="number" min="5" max="8" step="1" class="bar mono" placeholder="lesson"></label>
+        </div>
+        <div class="scroll" id="feature-list"></div>
+      </section>
+    </aside>
   </div>
 
-  <main class="columns">
-    <section class="left">
-      <div id="score" class="score-box" data-feature="view.score"></div>
-      <canvas id="lane" class="lane" data-feature="view.lane"></canvas>
-      <canvas id="keys" class="keys" data-feature="view.keyboard"></canvas>
-    </section>
-    <aside class="right">
-      <canvas id="hands-canvas" class="hands" data-feature="view.hands"></canvas>
-      <nav class="tabs">
-        <button data-tab="lesson" class="active" data-feature="view.lessonPanel">Lesson</button>
-        <button data-tab="script" data-feature="tools.script">Script</button>
-        <button data-tab="practice" data-feature="play.listen">Practice</button>
-        <button data-tab="settings" data-feature="app.settings">Settings</button>
-      </nav>
-      <div id="tab-lesson" class="tab">
-        <label class="dim">Lessons in this document</label>
-        <select id="lesson-list" size="4"></select>
-        <div id="info" class="info"></div>
-      </div>
-      <div id="tab-script" class="tab" hidden>
-        <div class="row">
-          <button id="btn-apply" class="primary" title="Ctrl+Enter">Apply</button>
-          <button id="btn-tidy" title="Re-indent the JSON">Tidy JSON</button>
-          <span id="script-state" class="dim"></span>
-        </div>
-        <textarea id="script" spellcheck="false" wrap="off"></textarea>
-        <pre id="report" class="report"></pre>
-      </div>
-      <div id="tab-practice" class="tab" hidden>
-        <div class="practice-head">
-          <label class="check"><input type="checkbox" id="listen"> <b>Listen</b> — score what I play</label>
-          <span id="heard" class="heard">—</span>
-        </div>
-        <p class="dim small">Tick Listen and press Play: the tutor plays the count-in and metronome, you play the notes, and the attempt is scored when it ends. One hand at a time scores best; use headphones or a quiet metronome so the microphone hears only the piano. <a href="listen/" target="_blank" rel="noopener">Check the microphone in Danas Ear.</a></p>
-        <div id="result" class="result" hidden></div>
-        <label class="dim">Attempts</label>
-        <div class="log-box"><table id="attempts"><thead><tr><th>When</th><th>Hands</th><th>Tempo</th><th>Score</th><th></th></tr></thead><tbody></tbody></table></div>
-      </div>
-      <div id="tab-settings" class="tab" hidden>
-        <p class="dim">Turn parts of the app off or on. Choices are remembered in this browser; a link can fix them for a student.</p>
-        <div class="row">
-          <label>Preset <select id="preset"><option value="">choose…</option></select></label>
-          <label title="How many white keys a hand comfortably covers: 5 = one key per finger. Blank = the lesson's own span.">Hand span <input id="span" type="number" min="5" max="8" step="1" class="bar" placeholder="lesson"> white keys</label>
-          <button id="btn-reset-settings">Defaults</button>
-          <button id="btn-settings-link" title="Copy a link that opens the app with these switches">Copy link</button>
-        </div>
-        <div id="feature-list"></div>
-      </div>
-    </aside>
-  </main>
-  <footer id="status" class="status"></footer>
+  <footer class="status" id="status"></footer>
 </div>
 
-<div id="print"></div>
+<!-- ⌘K: everything that is set once rather than changed while playing. -->
+<div class="overlay" id="palette-overlay" hidden>
+  <div class="palette" role="dialog" aria-label="Commands">
+    <input id="palette-input" placeholder="Type a command…" autocomplete="off" spellcheck="false">
+    <div class="palette-list" id="palette-list"></div>
+  </div>
+</div>
+
+<!-- ⌘E: writing a lesson is not playing one, so the editor covers the screen. -->
+<div class="overlay" id="script-overlay" hidden>
+  <div class="sheet" role="dialog" aria-label="Lesson script">
+    <div class="sheet-head">
+      <b>Lesson script</b>
+      <span id="script-state" class="quiet"></span>
+      <span class="spacer"></span>
+      <button id="btn-tidy">Tidy JSON</button>
+      <button id="btn-apply" class="primary">Apply</button>
+      <button id="btn-script-close">Close</button>
+    </div>
+    <textarea id="script" spellcheck="false" wrap="off"></textarea>
+    <pre id="report" class="report"></pre>
+  </div>
+</div>
 
 <dialog id="help">
-  <div class="dialog-head"><b>Lesson scripting reference</b><button id="btn-help-close">Close</button></div>
+  <div class="dialog-head"><b>Writing lessons</b><button id="btn-help-close">Close</button></div>
   <pre id="help-text">Loading…</pre>
 </dialog>
 
+<input id="file-input" type="file" accept=".json,application/json" hidden>
+<div id="print"></div>
 <script type="module" src="src/app.js"></script>
 </body>
 </html>

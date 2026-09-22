@@ -31,6 +31,15 @@ PYODIDE_VERSION = "0.27.7"
 PYODIDE_CDN = f"https://cdn.jsdelivr.net/pyodide/v{PYODIDE_VERSION}/full/"
 PYODIDE_FILES = ["pyodide.js", "pyodide.asm.js", "pyodide.asm.wasm", "python_stdlib.zip", "pyodide-lock.json"]
 BRAVURA_URL = "https://github.com/steinbergmedia/bravura/raw/master/redist/woff/Bravura.woff2"
+# The interface faces (docs/TECHNICAL.md §14.6): serif for titles, sans for
+# reading, mono for anything that changes while you play. Self-hosted,
+# because the production CSP allows fonts from 'self' only.
+GOOGLE_CSS = "https://fonts.googleapis.com/css2?family={}&display=swap"
+UI_FONTS = {
+    "InstrumentSerif": "Instrument+Serif",
+    "InstrumentSans": "Instrument+Sans:wght@400;500;600",
+    "JetBrainsMono": "JetBrains+Mono:wght@400;500",
+}
 BRAVURA_LICENSE_URL = "https://github.com/steinbergmedia/bravura/raw/master/LICENSE.txt"
 
 EXCLUDE_PACKAGES = ("raw/ui/", "raw/app/")
@@ -99,6 +108,53 @@ def _download(url: str, target: Path) -> None:
     print(f"       {len(data) // 1024} KB  sha256 {hashlib.sha256(data).hexdigest()[:16]}…")
 
 
+def vendor_ui_fonts() -> None:
+    """Download the latin woff2 of each interface face and write fonts.css.
+
+    Google serves per-subset files; we keep `latin` and `latin-ext`, which is
+    what the interface needs, and name them <Family>-<weight>-<subset>.woff2.
+    A failure here is not fatal: styles.css falls back to system faces.
+    """
+    import re
+
+    fonts = WEB / "vendor" / "fonts"
+    fonts.mkdir(parents=True, exist_ok=True)
+    for stale in fonts.glob("*latin-ext.woff2"):
+        stale.unlink()
+    rules = []
+    for name, query in UI_FONTS.items():
+        try:
+            req = urllib.request.Request(
+                GOOGLE_CSS.format(query),
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                                       "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"},
+            )
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                css = resp.read().decode("utf-8")
+        except Exception as exc:                       # offline build: keep going
+            print(f"  skip {name}: {exc}")
+            continue
+        blocks = re.findall(r"/\*\s*([\w-]+)\s*\*/\s*@font-face\s*\{(.*?)\}", css, re.S)
+        for subset, body in blocks:
+            if subset != "latin":                  # the interface is English
+                continue
+            url = re.search(r"url\((https://[^)]+\.woff2)\)", body)
+            weight = re.search(r"font-weight:\s*([\d ]+)", body)
+            style = "italic" if "font-style: italic" in body else "normal"
+            if not url or style == "italic":
+                continue
+            w = (weight.group(1).strip().split()[-1] if weight else "400")
+            target = fonts / f"{name}-{w}-{subset}.woff2"
+            _download(url.group(1), target)
+            rules.append(
+                f"@font-face {{ font-family: \"{name}\"; font-style: normal; font-weight: {w};\n"
+                f"  font-display: swap; src: url(\"fonts/{target.name}\") format(\"woff2\"); }}"
+            )
+    if rules:
+        (WEB / "vendor" / "fonts.css").write_text("\n".join(rules) + "\n", encoding="utf-8")
+        print(f"ui fonts: {len(rules)} faces")
+
+
 def vendor() -> None:
     py = WEB / "vendor" / "pyodide"
     for name in PYODIDE_FILES:
@@ -109,12 +165,15 @@ def vendor() -> None:
     fonts = WEB / "vendor" / "fonts"
     _download(BRAVURA_URL, fonts / "Bravura.woff2")
     _download(BRAVURA_LICENSE_URL, fonts / "Bravura-LICENSE.txt")
+    vendor_ui_fonts()
     (py / "VERSION").write_text(PYODIDE_VERSION, encoding="utf-8")
 
 
 def write_precache() -> None:
     """List every file the service worker should hold, with a content version."""
     files = ["./", "index.html", "styles.css", "sw.js", "core.zip"]
+    if (WEB / "vendor" / "fonts.css").exists():
+        files.append("vendor/fonts.css")
     files += sorted(p.relative_to(WEB).as_posix() for p in (WEB / "src").glob("*.js"))
     files += sorted(p.relative_to(WEB).as_posix() for p in (WEB / "assets").iterdir() if p.is_file())
     files += sorted(p.relative_to(WEB).as_posix() for p in (WEB / "lessons").glob("*.json"))

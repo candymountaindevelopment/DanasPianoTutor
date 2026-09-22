@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -202,6 +202,12 @@
         "feature": "Practice tab: microphone listening during playback (piano muted, metronome kept), attempt scored against the lesson — hits, per-note timing, extras, verdict, weak bars, wrong/missed notes coloured on the score, attempts history per lesson",
         "state": "done",
         "notes": "web/src/listen.js (shares listen/pitch.js), web/src/ranking.js (pure), transport voice_db + onPass; verified with a simulated student: perfect run 99, sloppy run 57 with the right misses found"
+      },
+      {
+        "area": "web",
+        "feature": "One-screen redesign: 52 px bar + 52 px rail + stage + 392 px panel; Learn / Practice / Ear modes; floating transport of seven live controls; Ctrl+K command palette for everything set once; Ctrl+E script overlay; engraved title as lesson switcher; tuner ribbon; note tape on the staff's x-axis; hand diagram retired (the hands are on the keys)",
+        "state": "done",
+        "notes": "design/ holds the artboards; web/{index.html,styles.css,src/{app,views,palette,score}.js}; Instrument Serif/Sans + JetBrains Mono self-hosted by build_web --vendor"
       }
     ],
     "examples": [
@@ -435,6 +441,10 @@
       {
         "path": "web/src/ranking.js",
         "role": "rankAttempt: targets by onset, tolerance matching, timing stats, score/stars/verdict"
+      },
+      {
+        "path": "web/src/palette.js",
+        "role": "Ctrl+K command palette, gated by the feature switches"
       }
     ],
     "changes_to_existing_raw_code": [
@@ -630,6 +640,22 @@
       "changes": [
         "New sections 14.6 (browser build: worker protocol, SVG score, transport, palms, feature switches, offline/deploy/hardening, canvas sizing) and 14.7 (Danas Ear, practice mode, ranking).",
         "Repository layout, header, hand span in 14.5, testing counts (439) and the roadmap updated."
+      ]
+    },
+    {
+      "date": "2026-09-22",
+      "version": "1.5.0",
+      "type": "feature",
+      "summary": "One screen, three modes — the browser app rebuilt to the design",
+      "changes": [
+        "design/: the five artboards (Learn, Practice, Ear, what folded into what, parts and palette) and a README with the eight consolidations and the five rules.",
+        "web/: new index.html and styles.css on the design tokens (ground/keybed/hairline/ink/quiet/now/wrong/missed), Instrument Serif + Instrument Sans + JetBrains Mono self-hosted.",
+        "Three modes on a 52 px rail; the staff and keyboard never move; the tuner ribbon slides in under the staff in Practice and Ear; in Ear the pitch trace takes the staff's place.",
+        "One floating transport of seven controls that change while you play; everything set once moved to the Ctrl+K palette (web/src/palette.js).",
+        "The engraved title is the lesson switcher; the score's own title block is no longer drawn on screen and the band reserved for it is cropped.",
+        "Note lane became a 74 px tape on the staff's x-axis (ScoreView.mapper), off by default; the hand diagram was retired — the hands are drawn on the keys.",
+        "Feature switches 30 → 28 (view.hands and show.nextFinger retired); kiosk preset tightened.",
+        "Verified in headless Chrome: all three modes, kiosk and teacher presets, 900 px width, the palette, the title menu, the script overlay, the print layout, and a scored attempt rendered from a synthetic ranking."
       ]
     }
   ]

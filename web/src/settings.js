@@ -7,17 +7,15 @@
 export const FEATURES = [
   // What is on screen
   { id: "view.score",         group: "Views",    label: "Sheet music",                        default: true },
-  { id: "view.lane",          group: "Views",    label: "Note lane (scrolling notes)",         default: true },
+  { id: "view.lane",          group: "Views",    label: "Note tape under the staff",           default: false },
   { id: "view.keyboard",      group: "Views",    label: "Keyboard",                           default: true },
-  { id: "view.hands",         group: "Views",    label: "Hand diagram",                       default: true },
-  { id: "view.lessonPanel",   group: "Views",    label: "Lesson panel (list, notes, tips)",    default: true },
+  { id: "view.lessonPanel",   group: "Views",    label: "Lesson panel (positions, instructions, tips)", default: true },
   { id: "view.follow",        group: "Views",    label: "Score scrolls to follow playback",    default: true },
   // How fingering and positions are shown
   { id: "show.inferred",      group: "Fingering", label: "Grey inferred finger numbers on the score", default: true },
   { id: "show.keyFingers",    group: "Fingering", label: "Finger numbers on the keys",          default: true },
   { id: "show.restingHands",  group: "Fingering", label: "Resting hand position on the keys",   default: true },
-  { id: "show.nextFinger",    group: "Fingering", label: "Outline the next finger in the hand diagram", default: true },
-  { id: "show.laneFingers",   group: "Fingering", label: "Finger numbers in the note lane",     default: true },
+  { id: "show.laneFingers",   group: "Fingering", label: "Finger numbers on the note tape",     default: true },
   { id: "show.palms",         group: "Fingering", label: "Moving hands on the keyboard (the palm glides so each finger lands on its key)", default: true },
   // Playback controls
   { id: "play.tempo",         group: "Playback", label: "Tempo control (off = lesson tempo only)", default: true },
@@ -27,7 +25,7 @@ export const FEATURES = [
   { id: "play.loop",          group: "Playback", label: "Practice loop and bar range",          default: true },
   { id: "play.clickKeys",     group: "Playback", label: "Click a key to hear it",              default: true },
   { id: "play.seek",          group: "Playback", label: "Click a bar to jump there",           default: true },
-  { id: "play.listen",        group: "Playback", label: "Practice tab: listen through the microphone and score the attempt", default: true },
+  { id: "play.listen",        group: "Playback", label: "Practice mode: listen through the microphone and score the attempt", default: true },
   // Tools
   { id: "tools.script",       group: "Tools",    label: "Script editor (write and edit lessons)", default: true },
   { id: "tools.examples",     group: "Tools",    label: "Examples menu",                       default: true },
@@ -36,10 +34,10 @@ export const FEATURES = [
   { id: "tools.export",       group: "Tools",    label: "Export MusicXML and WAV",             default: true },
   { id: "tools.print",        group: "Tools",    label: "Print / save as PDF",                 default: true },
   { id: "tools.help",         group: "Tools",    label: "Help (scripting reference)",          default: true },
-  { id: "tools.ear",          group: "Tools",    label: "Ear button (opens the microphone pitch listener)", default: true },
+  { id: "tools.ear",          group: "Tools",    label: "Ear mode (free listening, pitch only)", default: true },
   // App
   { id: "app.splash",         group: "App",      label: "Welcome screen at start",             default: true },
-  { id: "app.settings",       group: "App",      label: "Settings tab (off hides this panel — bring it back with Ctrl+Shift+S, About → Reset app settings, or ?reset in the address bar)", default: true },
+  { id: "app.settings",       group: "App",      label: "Set up (off hides this panel — bring it back with Ctrl+Shift+S, About → Reset app settings, or ?reset in the address bar)", default: true },
 ];
 
 export const PRESETS = {
@@ -50,8 +48,9 @@ export const PRESETS = {
   },
   kiosk: {
     label: "Kiosk — listen and watch",
-    off: ["tools.script", "tools.files", "tools.share", "tools.export", "tools.print", "tools.help", "tools.ear", "play.listen",
-          "play.tempo", "play.loop", "play.countIn", "play.clickKeys", "view.lessonPanel", "app.settings"],
+    off: ["tools.script", "tools.files", "tools.share", "tools.export", "tools.print", "tools.help",
+          "tools.ear", "tools.examples", "play.listen", "play.tempo", "play.loop", "play.countIn",
+          "play.clickKeys", "view.lane", "view.lessonPanel", "app.settings"],
   },
   teacher: {
     label: "Teacher — everything, no splash",

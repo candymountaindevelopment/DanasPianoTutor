@@ -1,0 +1,27 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-09-22T12:14:44Z" },
+  "title": "Danas Tutor — One Screen",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Learn", "is_interactive": true },
+    "Practice.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 900, "title": "Practice", "is_interactive": true },
+    "Ear.dc.html": { "x": 3040, "y": 0, "w": 1440, "h": 900, "title": "Ear", "is_interactive": true },
+    "Anatomy.dc.html": { "x": 0, "y": 1400, "w": 1440, "h": 900, "title": "What folded into what" },
+    "Parts.dc.html": { "x": 1520, "y": 1400, "w": 1200, "h": 980, "title": "Parts and palette" }
+  },
+  "order": ["Main.dc.html", "Practice.dc.html", "Ear.dc.html", "Anatomy.dc.html", "Parts.dc.html"],
+  "notes": {
+    "t1": { "x": 0, "y": -300, "text": "One screen, three modes", "kind": "title1", "maxW": 4480 },
+    "t2": { "x": 0, "y": 1100, "text": "Why it holds together", "kind": "title1", "maxW": 2720 },
+    "n1": {
+      "x": 4620,
+      "y": 0,
+      "w": 420,
+      "text": "The three boards on this row are the same screen. The rail on the left switches modes; the staff and the keyboard never move. Click the Play button on any board to try the rail, the hand selector and the Listen toggle.\n\nLearn — read and play along.\nPractice — the tuner ribbon slides in under the staff and the panel becomes your score.\nEar — the pitch trace takes the staff's place. Danas Ear, with no second page.",
+      "fill": "green"
+    }
+  },
+  "designSystems": []
+}

@@ -98,9 +98,15 @@ python tools/serve_web.py              # http://127.0.0.1:8765 with the producti
 python tools/build_web.py --dist       # clean, servable tree in dist/ (for Caddy / Cloudflare Pages)
 ```
 
-Everything the desktop app does is there — score, note lane, keyboard, hand
-diagram, tempo, metronome, count-in, hands, practice loop, script editor,
-MusicXML / WAV export, print-to-PDF — plus a **Settings** tab where every
+It is **one screen with three modes** (`design/`): *Learn* to read and play
+along, *Practice* to be scored through the microphone, *Ear* for free
+listening. The staff and the keyboard never move between them — the rail on
+the left switches mode, the tuner ribbon slides in under the staff, and the
+right panel changes. The hands are drawn on the keys they hold, the engraved
+title is the lesson switcher, and everything that is set once rather than
+changed while you play (open, save, exports, print, share, count-in, bar
+range) is behind **Ctrl+K**. The script editor is Ctrl+E, over the screen.
+Everything the desktop app does is there, plus a **Set up** panel where every
 optional part can be switched off (views, fingering hints, controls, tools).
 Presets (*Student*, *Kiosk*, *Teacher*) and a copyable link fix the switches
 for a pupil: `?preset=kiosk` or `?off=tools.script,play.tempo`. Three ways

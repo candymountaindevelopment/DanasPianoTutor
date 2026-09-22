@@ -108,6 +108,7 @@ raw/
                          timestructure_dock.py, sample_lab.py, sample_fx.py,
                          chord_lab.py, piano.py, console_dock.py, import_dialog.py,
                          waveform.py, dnd.py, theme.py, teach/ (tutor window)
+design/                  the artboards the browser app is built from (§14.6.0)
 web/                     Piano Tutor in the browser (§14.6); src/*.js, index.html,
                          styles.css, sw.js; core.zip, lessons/, assets/, vendor/
                          and precache.json are build outputs (git-ignored)
@@ -801,22 +802,51 @@ static files and runs nothing.
 
 ```
 web/
-├── index.html      shell: splash, toolbar, transport, views, tabs, dialogs
-├── styles.css      dark palette shared with the desktop theme; @media print
+├── index.html      shell: splash, bar, rail, stage, panel, overlays
+├── styles.css      the design tokens and the whole screen; @media print
 ├── sw.js           service worker: precache + network-first for app files
 └── src/
-    ├── app.js      boot, wiring, tabs, lesson panel, practice flow
+    ├── app.js      boot, modes, wiring, panels, practice flow
     ├── bridge.js   promise RPC to the worker
     ├── worker.js   Pyodide boot, core.zip unpack, ops
     ├── transport.js Web Audio playback, position, two-stage loop
-    ├── score.js    layout JSON -> SVG (Bravura), cursor, print pages
-    ├── views.js    Canvas keyboard, hand diagram, note lane
+    ├── score.js    layout JSON -> SVG (Bravura), cursor, x-axis, print pages
+    ├── views.js    Canvas keyboard with hands, note tape, pitch trace, ribbon
     ├── palms.js    moving hands on the keyboard (§14.6.4)
+    ├── palette.js  the Ctrl+K command palette (§14.6.5)
     ├── settings.js feature switches, presets, URL overrides (§14.6.5)
     ├── listen.js   microphone -> YIN, stamped with lesson divisions (§14.7.2)
     ├── ranking.js  score an attempt against the lesson (§14.7.3)
     └── exports.js  downloads, WAV encoder, share links, storage, print
 ```
+
+### 14.6.0 One screen, three modes
+
+The tutor and the Ear are not two apps but three modes of one screen
+(`design/`, and `design/README.md` for the reasoning). Three columns — a
+52 px rail, the stage, a 392 px panel — and **the staff and the keyboard
+never move between modes**: switching slides the tuner ribbon in under the
+staff and changes the panel.
+
+| mode | stage | panel |
+|---|---|---|
+| **Learn** | staff, optional note tape, keys | hand positions, instructions, tips |
+| **Practice** | the same, plus the 46 px tuner ribbon | the score card and the attempts |
+| **Ear** | the pitch trace takes the staff's place | the notes heard, with JSON / copy-as-script |
+
+The rules the stylesheet keeps: one accent (mint means *now*, nothing
+decorative is ever coloured); no cards, only 1 px hairlines; a control that
+changes while you play is on screen, one that is set once is in the palette;
+and information is drawn on the thing it describes — fingers on keys, tuning
+under the staff, misses on the notes that were missed. Type is Instrument
+Serif for titles, Instrument Sans for reading and JetBrains Mono for anything
+that changes while you play (so numbers do not jitter); all three are
+self-hosted by `--vendor`, since the CSP allows `font-src 'self'` only.
+
+The engraved title is the lesson switcher, and the line of small caps under
+it carries what used to be a five-row table. The score's own title block is
+therefore not drawn on screen (`renderPage`'s `noTexts`) and the band the
+engraver reserves for it is cropped out of the viewBox; print keeps both.
 
 ### 14.6.1 Build
 
@@ -866,7 +896,7 @@ the section alone with `loop = true` — and a pass counter drives `onPass`, so
 each repetition can be scored separately (§14.7). Browsers need a gesture
 before audio starts; the splash click is that gesture.
 
-### 14.6.4 Moving hands (`palms.js`)
+### 14.6.4 Moving hands and the note tape
 
 For each hand a placement timeline is built from the lesson alone: every note
 group's *anchor* is the white-key index of its key minus the offset of the
@@ -879,16 +909,30 @@ translucent palm with five fingers; a pressing finger reaches onto its key
 function of the division, scrubbing, looping and playing all agree, and the
 drawing never disagrees with the fingering on the score.
 
-### 14.6.5 Feature switches
+The note tape (74 px, off by default) draws on the **staff's own x-axis**:
+`ScoreView.mapper()` reports `{from, to, xOf(division)}` for the system under
+the cursor and the tape draws in that space, so a bar sits under the bar
+above it. Rows are white keys rather than semitones, which fits two octaves
+into the band with bars thick enough to read. With no mapper — before the
+first engraving — it falls back to its own scrolling axis.
 
-`settings.js` holds a registry of 30 switches in five groups (Views,
+### 14.6.5 The palette and the feature switches
+
+`palette.js` is the Ctrl+K palette: the app hands it a list of commands, each
+carrying the feature switch it belongs to, so a command whose part of the app
+is switched off is not in the list at all. Everything that is **set once**
+lives there — open, save, keep, the exports, print, share, the count-in, the
+bar range, the modes, the reference — while the seven controls that change
+while you play stay on the floating transport.
+
+`settings.js` holds a registry of 28 switches in five groups (Views,
 Fingering, Playback, Tools, App). `Settings.get(id)` gates both the DOM
 (`[data-feature]` elements are hidden) and behaviour: a hidden control falls
 back to a neutral value — no tempo control means the lesson tempo, no loop
 means the whole piece. Choices live in `localStorage`; `?preset=kiosk`,
 `?off=a,b` and `?on=a,b` fix them for a pupil (fixed switches render locked),
 and `?reset` — like **Ctrl+Shift+S** and *About → Reset app settings* — is the
-way back out of a preset that hid the Settings tab. Presets: *Everything*,
+way back out of a preset that hid the switches. Presets: *Everything*,
 *Student*, *Kiosk*, *Teacher*.
 
 ### 14.6.6 Offline, deployment and hardening
@@ -931,12 +975,18 @@ ratios 1, 1.25, 1.5 and 2, and with the stylesheet stripped.
 
 ### 14.7.1 Danas Ear
 
-`listen/` is a standalone page — no Pyodide, plain JavaScript — that shows the
+Ear is a mode of the tutor (§14.6.0): the trace takes the staff's place, the
+ribbon reads out note, hertz, cents and clarity, the keyboard shows the key
+being heard, and the panel logs the notes with JSON and copy-as-script. It
+runs on a wall clock rather than the transport, so nothing needs to be
+playing.
+
+`listen/` is the same thing as a standalone page — no Pyodide, plain JavaScript — that shows the
 pitch the microphone hears: note, cents, hertz, clarity, level, a 12-second
 pitch trace, a waveform, a keyboard, and a log of note events downloadable as
-JSON or copyable as a RAW notes line quantised to a tempo. It is served beside
-the tutor at `/listen/`, opened by the tutor's **Ear** button, and is the only
-path granted the microphone by the Caddyfile.
+JSON or copyable as a RAW notes line quantised to a tempo. It is served beside the tutor at
+`/listen/`, reachable from the palette, and is the only path granted the
+microphone by the Caddyfile.
 
 `listen/pitch.js` is shared by both apps:
 
@@ -953,7 +1003,7 @@ path granted the microphone by the Caddyfile.
 
 ### 14.7.2 Practice mode
 
-Ticking **Listen** in the tutor's Practice tab opens the microphone on the
+Ticking **Listen** in the top bar opens the microphone on the
 *transport's* `AudioContext` (one clock for both) and sets `voice_db` to -100,
 so the piano is muted while the count-in and metronome keep playing. Each
 animation frame the app samples the analyser at the current division and feeds

@@ -1,44 +1,60 @@
-/* Canvas views: keyboard, hand diagram, note lane. Ports of the desktop
- * widgets; each takes the lesson summary from the worker and a division. */
+/* Canvas views: the keyboard (with the hands drawn on the keys), the note
+ * tape under the staff, the pitch trace and the tuner ribbon.
+ *
+ * Every canvas is sized from a wrapper element and positioned out of the
+ * flow (see setupCanvas), so a canvas can never size itself. */
 
 export const COLORS = {
-  bg: "#14161a", panel: "#1b1e24", panelAlt: "#22262e", border: "#2e343e",
-  text: "#d7dce4", textDim: "#7d8695", accent: "#4fd1a5", accentDim: "#2c8b6d",
-  playhead: "#e0b341", right: "#4fd1a5", left: "#5c9ce0", rightDim: "#2c6b56", leftDim: "#31527a",
+  ground: "#0E1214", keybed: "#0A0D0E", hairline: "#1E2629",
+  ink: "#E9EEF0", quiet: "#96A3A8", now: "#46D7A1", nowDim: "#24705a",
+  wrong: "#E9B44C", missed: "#F08079", left: "#5C9CE0", leftDim: "#2f5378",
+  whiteKey: "#E9EEF0", blackKey: "#12181a",
 };
-const HAND_COLOR = { R: COLORS.right, L: COLORS.left };
-const HAND_DIM = { R: COLORS.rightDim, L: COLORS.leftDim };
+const HAND_COLOR = { R: COLORS.now, L: COLORS.left };
+const HAND_DIM = { R: COLORS.nowDim, L: COLORS.leftDim };
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const WHITE = new Set([0, 2, 4, 5, 7, 9, 11]);
 const WHITE_SEMITONES = [0, 2, 4, 5, 7, 9, 11];
 const BLACK_AFTER = { 0: 1, 1: 3, 3: 6, 4: 8, 5: 10 };
+const WHITE_INDEX = { 0: 0, 1: 0.5, 2: 1, 3: 1.5, 4: 2, 5: 3, 6: 3.5, 7: 4, 8: 4.5, 9: 5, 10: 5.5, 11: 6 };
+
+export const FONT_SANS = '"InstrumentSans", "Segoe UI", system-ui, sans-serif';
+export const FONT_MONO = '"JetBrainsMono", Consolas, monospace';
 
 export const noteName = (midi) => NOTE_NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
 export const isWhite = (midi) => WHITE.has(midi % 12);
-const WHITE_INDEX = { 0: 0, 1: 0.5, 2: 1, 3: 1.5, 4: 2, 5: 3, 6: 3.5, 7: 4, 8: 4.5, 9: 5, 10: 5.5, 11: 6 };
 const whiteIndex = (midi) => Math.floor(midi / 12) * 7 + WHITE_INDEX[midi % 12];
-
-/* Size the backing store to the canvas box × device pixel ratio.
- *
- * The box is clamped to the window: a canvas that ends up sized by its own
- * backing store (a missing or stale stylesheet) would otherwise grow by the
- * ratio on every frame until the browser refuses to paint it. */
 const MAX_SIDE = 8192;
 
+/* Size the backing store to the wrapper's box times the device pixel ratio.
+ * The canvas itself never decides how big it is. */
 function setupCanvas(canvas) {
+  const box = canvas.parentElement || canvas;
+  const w = Math.max(1, Math.min(MAX_SIDE, box.clientWidth));
+  const h = Math.max(1, Math.min(MAX_SIDE, box.clientHeight));
   const dpr = Math.min(3, window.devicePixelRatio || 1);
-  const w = Math.max(1, Math.min(canvas.clientWidth, window.innerWidth));
-  const h = Math.max(1, Math.min(canvas.clientHeight, window.innerHeight));
-  if (canvas.clientWidth > w || canvas.clientHeight > h) { canvas.style.width = w + "px"; canvas.style.height = h + "px"; }
-  const bw = Math.min(MAX_SIDE, Math.round(w * dpr)), bh = Math.min(MAX_SIDE, Math.round(h * dpr));
+  const bw = Math.max(1, Math.min(MAX_SIDE, Math.round(w * dpr)));
+  const bh = Math.max(1, Math.min(MAX_SIDE, Math.round(h * dpr)));
   if (canvas.width !== bw || canvas.height !== bh) { canvas.width = bw; canvas.height = bh; }
   const ctx = canvas.getContext("2d");
   ctx.setTransform(bw / w, 0, 0, bh / h, 0, 0);
+  ctx.clearRect(0, 0, w, h);
   return [ctx, w, h];
 }
 
-function sounding(lesson, division, hands) {
-  return lesson.notes.filter((n) => hands.includes(n.hand) && n.start <= division && division < n.start + n.duration);
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y); ctx.lineTo(x + w - rr, y); ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+  ctx.lineTo(x + w, y + h - rr); ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+  ctx.lineTo(x + rr, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+  ctx.lineTo(x, y + rr); ctx.quadraticCurveTo(x, y, x + rr, y); ctx.closePath();
+}
+
+function shade(hex, factor) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.round(((n >> 16) & 255) * factor), g = Math.round(((n >> 8) & 255) * factor), b = Math.round((n & 255) * factor);
+  return `rgb(${r},${g},${b})`;
 }
 
 /* ------------------------------------------------------------ keyboard */
@@ -49,8 +65,8 @@ export class Keyboard {
     this.settings = settings;
     this.low = 48; this.octaves = 3;
     this.marks = {};
-    this.palms = {};            // hand -> state from palms.handState, or null
-    this.dim = [];              // hands that are muted
+    this.palms = {};
+    this.dim = [];
     this.onKey = null;
     canvas.addEventListener("click", (e) => {
       if (!this.onKey || !this.settings.get("play.clickKeys")) return;
@@ -58,7 +74,7 @@ export class Keyboard {
       const midi = this.noteAt(e.clientX - rect.left, e.clientY - rect.top);
       if (midi !== null) this.onKey(midi);
     });
-    new ResizeObserver(() => this.draw()).observe(canvas);
+    new ResizeObserver(() => this.draw()).observe(canvas.parentElement || canvas);
   }
 
   fit(lesson) {
@@ -72,8 +88,7 @@ export class Keyboard {
     this.draw();
   }
 
-  setMarks(marks) { this.marks = marks; this.draw(); }
-  update(marks, palms, dim) { this.marks = marks; this.palms = palms || {}; this.dim = dim || []; this.draw(); }
+  update(marks, palms, dim) { this.marks = marks || {}; this.palms = palms || {}; this.dim = dim || []; this.draw(); }
 
   whiteRects(w, h) {
     const count = 7 * this.octaves, kw = w / count, out = [];
@@ -82,7 +97,7 @@ export class Keyboard {
   }
 
   blackRects(w, h) {
-    const count = 7 * this.octaves, kw = w / count, bw = kw * 0.62, bh = h * 0.62, out = [];
+    const count = 7 * this.octaves, kw = w / count, bw = kw * 0.6, bh = h * 0.6, out = [];
     for (let i = 0; i < count; i++) {
       const off = BLACK_AFTER[i % 7];
       if (off === undefined || i === count - 1) continue;
@@ -92,7 +107,8 @@ export class Keyboard {
   }
 
   noteAt(x, y) {
-    const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
+    const box = this.canvas.parentElement || this.canvas;
+    const w = box.clientWidth, h = box.clientHeight;
     for (const [m, rx, ry, rw, rh] of this.blackRects(w, h)) if (x >= rx && x < rx + rw && y >= ry && y < ry + rh) return m;
     for (const [m, rx, ry, rw, rh] of this.whiteRects(w, h)) if (x >= rx && x < rx + rw && y >= ry && y < ry + rh) return m;
     return null;
@@ -100,193 +116,86 @@ export class Keyboard {
 
   draw() {
     const [ctx, w, h] = setupCanvas(this.canvas);
-    ctx.fillStyle = COLORS.panel; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = COLORS.keybed; ctx.fillRect(0, 0, w, h);
     const whites = this.whiteRects(w, h), blacks = this.blackRects(w, h);
-    const showAll = w / (7 * this.octaves) > 22;
-    ctx.font = "9px Segoe UI, sans-serif"; ctx.textAlign = "center";
-    for (const [m, x, y, kw, kh] of whites) {
+    const kw = w / (7 * this.octaves);
+    const labels = kw > 21;
+    ctx.font = `9px ${FONT_MONO}`; ctx.textAlign = "center";
+    for (const [m, x, , width, kh] of whites) {
       const mark = this.marks[m];
-      ctx.fillStyle = mark ? mark[0] : "#e8ecf2";
-      ctx.fillRect(x, y, kw, kh);
-      ctx.strokeStyle = "#9aa3b0"; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, kw - 1, kh - 1);
-      if (m % 12 === 0 || showAll) { ctx.fillStyle = "#20242b"; ctx.fillText(noteName(m), x + kw / 2, kh - 6); }
+      ctx.fillStyle = mark ? mark[0] : COLORS.whiteKey;
+      roundRect(ctx, x + 0.5, -6, width - 1, kh + 6, 4); ctx.fill();
+      if (labels || m % 12 === 0) { ctx.fillStyle = "rgba(99,112,116,0.55)"; ctx.fillText(noteName(m), x + width / 2, kh - 8); }
     }
-    for (const [m, x, y, bw, bh] of blacks) {
+    for (const [m, x, , bw, bh] of blacks) {
       const mark = this.marks[m];
-      ctx.fillStyle = mark ? shade(mark[0], 0.8) : "#1a1d23";
-      ctx.fillRect(x, y, bw, bh);
-      ctx.strokeStyle = "#000"; ctx.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1);
+      ctx.fillStyle = mark ? shade(mark[0], 0.75) : COLORS.blackKey;
+      roundRect(ctx, x, -6, bw, bh + 6, 3); ctx.fill();
     }
-    const palms = this.settings.get("show.palms") && Object.values(this.palms).some(Boolean);
-    if (palms) for (const hand of ["L", "R"]) if (this.palms[hand]) this.drawPalm(ctx, w, h, this.palms[hand]);
-    if (!this.settings.get("show.keyFingers") || palms) return;   // fingertips carry the numbers
-    const size = Math.max(8, Math.min(13, h / 7));
-    ctx.font = `bold ${size}px Segoe UI, sans-serif`; ctx.textBaseline = "middle";
-    for (const [m, x, y, kw, kh] of [...blacks, ...whites]) {
-      const mark = this.marks[m];
-      if (!mark || !mark[1]) continue;
-      const black = !isWhite(m), d = Math.min(kw * 0.8, 22);
-      const cy = y + kh - (black ? 14 : 34) - d / 2 + d / 2;
-      ctx.beginPath(); ctx.arc(x + kw / 2, cy, d / 2, 0, Math.PI * 2);
-      ctx.fillStyle = "#f4f6f8"; ctx.fill(); ctx.strokeStyle = "#0d1013"; ctx.stroke();
-      ctx.fillStyle = "#0d1013"; ctx.fillText(mark[1], x + kw / 2, cy + 0.5);
-    }
-    ctx.textBaseline = "alphabetic";
-  }
-}
-
-/* One hand seen from above: a translucent palm at the near edge of the
- * keys with five fingers reaching up to their resting keys; a finger that is
- * playing reaches further, onto the key, and shows its number. */
-Keyboard.prototype.drawPalm = function (ctx, w, h, state) {
-  const kw = w / (7 * this.octaves);
-  const base = whiteIndex(this.low);
-  const xOf = (wi) => (wi - base) * kw + kw / 2;
-  const hand = state.hand, dim = this.dim.includes(hand);
-  const color = dim ? HAND_DIM[hand] : HAND_COLOR[hand];
-  const fingers = state.offsets.map((o, k) => ({ x: xOf(state.anchor + o), number: hand === "R" ? k + 1 : 5 - k }));
-  const fw = Math.max(9, Math.min(kw * 0.6, 22));
-  const palmTop = h * 0.76, palmBottom = h + 14;
-  const left = Math.min(...fingers.map((f) => f.x)) - fw * 0.9, right = Math.max(...fingers.map((f) => f.x)) + fw * 0.9;
-  ctx.save();
-  ctx.globalAlpha = dim ? 0.35 : 0.55;
-  ctx.fillStyle = color; ctx.strokeStyle = "#0d1013"; ctx.lineWidth = 1;
-  roundRect(ctx, left, palmTop, right - left, palmBottom - palmTop, Math.min(14, (right - left) / 3));
-  ctx.fill(); ctx.stroke();
-  for (const f of fingers) {
-    const midi = state.pressed[f.number];
-    const thumb = f.number === 1;
-    let tip;
-    if (midi !== undefined) tip = isWhite(midi) ? h * 0.30 : h * 0.10;
-    else tip = thumb ? h * 0.60 : h * (0.42 + 0.03 * Math.abs(f.number - 3));
-    const y0 = palmTop + 4;
-    ctx.globalAlpha = midi !== undefined ? 0.95 : dim ? 0.35 : 0.6;
-    ctx.fillStyle = color;
-    roundRect(ctx, f.x - fw / 2, tip, fw, y0 - tip + fw / 2, fw / 2);
-    ctx.fill(); ctx.stroke();
-    if (midi !== undefined || this.settings.get("show.keyFingers")) {
-      ctx.globalAlpha = 1;
-      const r = fw * 0.42;
-      ctx.beginPath(); ctx.arc(f.x, tip + fw / 2, r, 0, Math.PI * 2);
-      ctx.fillStyle = midi !== undefined ? "#f4f6f8" : "rgba(244,246,248,0.75)"; ctx.fill();
-      ctx.fillStyle = "#0d1013"; ctx.font = `bold ${Math.max(8, Math.min(12, r * 1.5))}px Segoe UI, sans-serif`;
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(String(f.number), f.x, tip + fw / 2 + 0.5);
+    if (this.settings.get("show.palms")) {
+      for (const hand of ["L", "R"]) if (this.palms[hand]) this.drawPalm(ctx, w, h, this.palms[hand]);
+    } else if (this.settings.get("show.keyFingers")) {
+      ctx.textBaseline = "middle";
+      for (const [m, x, , width, kh] of [...blacks, ...whites]) {
+        const mark = this.marks[m];
+        if (!mark || !mark[1]) continue;
+        const d = Math.min(width * 0.8, 22), cy = isWhite(m) ? kh - 34 : kh - 16;
+        ctx.beginPath(); ctx.arc(x + width / 2, cy, d / 2, 0, Math.PI * 2);
+        ctx.fillStyle = COLORS.keybed; ctx.fill();
+        ctx.fillStyle = COLORS.ink; ctx.font = `500 ${Math.max(9, d * 0.55)}px ${FONT_MONO}`;
+        ctx.fillText(mark[1], x + width / 2, cy + 0.5);
+      }
+      ctx.textBaseline = "alphabetic";
     }
   }
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = "#0d1013"; ctx.font = `bold ${Math.max(9, Math.min(12, fw * 0.7))}px Segoe UI, sans-serif`;
-  ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(hand === "R" ? "R" : "L", (left + right) / 2, h - 7);
-  ctx.restore();
-};
 
-function shade(hex, factor) {
-  const n = parseInt(hex.slice(1), 16);
-  const r = Math.round(((n >> 16) & 255) * factor), g = Math.round(((n >> 8) & 255) * factor), b = Math.round((n & 255) * factor);
-  return `rgb(${r},${g},${b})`;
-}
-
-/* --------------------------------------------------------------- hands */
-
-const FINGER_LENGTH = { 1: 0.58, 2: 0.92, 3: 1.0, 4: 0.93, 5: 0.74 };
-const FINGER_NAMES = { 1: "thumb", 2: "index", 3: "middle", 4: "ring", 5: "little" };
-const HAND_NAMES = { R: "Right hand", L: "Left hand" };
-const SKIN = "#3a4150", SKIN_EDGE = "#586275";
-
-export class Hands {
-  constructor(canvas, settings) {
-    this.canvas = canvas; this.settings = settings;
-    this.lesson = null; this.position = 0; this.dim = [];
-    new ResizeObserver(() => this.draw()).observe(canvas);
-  }
-  setLesson(lesson) { this.lesson = lesson; this.position = 0; this.draw(); }
-  setPosition(d) { this.position = d; this.draw(); }
-  setDim(hands) { this.dim = hands; this.draw(); }
-
-  active(hand) {
-    const out = {};
-    if (!this.lesson) return out;
-    for (const n of sounding(this.lesson, this.position, [hand])) if (n.shown) (out[n.shown] ||= []).push(n.midi);
-    return out;
-  }
-
-  next(hand) {
-    if (!this.lesson) return null;
-    let best = null;
-    for (const n of this.lesson.notes) if (n.hand === hand && n.start > this.position && (!best || n.start < best.start)) best = n;
-    return best;
-  }
-
-  draw() {
-    const [ctx, w, h] = setupCanvas(this.canvas);
-    ctx.fillStyle = COLORS.panel; ctx.fillRect(0, 0, w, h);
-    const half = w / 2;
-    this.drawHand(ctx, 6, 6, half - 12, h - 12, "L");
-    this.drawHand(ctx, half + 6, 6, half - 12, h - 12, "R");
-  }
-
-  drawHand(ctx, bx, by, bw, bh, hand) {
-    const dim = this.dim.includes(hand), color = HAND_COLOR[hand];
-    const active = this.active(hand), next = this.settings.get("show.nextFinger") ? this.next(hand) : null;
-    const labelH = 34, areaH = bh - labelH;
-    const palmW = Math.min(bw * 0.62, areaH * 0.55), palmH = palmW * 0.95;
-    const cx = bx + bw / 2, palmTop = by + areaH - palmH - 4, palmL = cx - palmW / 2;
-    const fingerW = palmW / 4.6, maxLen = Math.min(palmW, palmTop - by - 14);
-    roundRect(ctx, palmL, palmTop, palmW, palmH, palmW * 0.22); ctx.fillStyle = SKIN; ctx.fill(); ctx.strokeStyle = SKIN_EDGE; ctx.lineWidth = 1.2; ctx.stroke();
-    const order = hand === "R" ? [2, 3, 4, 5] : [5, 4, 3, 2];
-    order.forEach((finger, i) => {
-      const fx = palmL + palmW * (i + 0.5) / 4, len = maxLen * FINGER_LENGTH[finger];
-      this.finger(ctx, fx - fingerW / 2, palmTop - len + fingerW * 0.6, fingerW, len, finger, active[finger], next && next.shown === finger, color, dim);
-    });
-    // Thumb, angled outward.
-    const side = hand === "L" ? 1 : -1, tLen = maxLen * FINGER_LENGTH[1];
+  /* A hand seen from above: the palm at the near edge of the keys, five
+   * fingers reaching to their resting keys, a pressing finger on its key. */
+  drawPalm(ctx, w, h, state) {
+    const kw = w / (7 * this.octaves);
+    const base = whiteIndex(this.low);
+    const xOf = (wi) => (wi - base) * kw + kw / 2;
+    const hand = state.hand, dim = this.dim.includes(hand);
+    const color = dim ? HAND_DIM[hand] : HAND_COLOR[hand];
+    const fingers = state.offsets.map((o, k) => ({ x: xOf(state.anchor + o), number: hand === "R" ? k + 1 : 5 - k }));
+    const fw = Math.max(9, Math.min(kw * 0.58, 22));
+    const palmTop = h * 0.80, palmBottom = h + 16;
+    const left = Math.min(...fingers.map((f) => f.x)) - fw * 0.85, right = Math.max(...fingers.map((f) => f.x)) + fw * 0.85;
     ctx.save();
-    ctx.translate(side < 0 ? palmL + fingerW * 0.2 : palmL + palmW - fingerW * 0.2, palmTop + palmH * 0.45);
-    ctx.rotate((50 * side) * Math.PI / 180);
-    this.finger(ctx, -fingerW / 2, -tLen, fingerW, tLen + fingerW * 0.4, 1, active[1], next && next.shown === 1, color, dim);
-    ctx.restore();
-    // Captions.
-    ctx.textAlign = "center"; ctx.font = "bold 12px Segoe UI, sans-serif";
-    ctx.fillStyle = dim ? COLORS.textDim : COLORS.text;
-    ctx.fillText(HAND_NAMES[hand] + (dim ? " (muted)" : ""), cx, by + bh - labelH + 14);
-    ctx.font = "11px Segoe UI, sans-serif";
-    let text, col = COLORS.textDim;
-    const fingers = Object.keys(active).map(Number).sort();
-    if (fingers.length) { text = fingers.map((f) => `${f} on ${active[f].sort().map(noteName).join(" ")}`).join(", "); col = dim ? COLORS.textDim : color; }
-    else if (next && next.shown) text = `next: ${next.shown} (${FINGER_NAMES[next.shown]}) on ${noteName(next.midi)}`;
-    else text = this.lesson ? this.lesson.positions[hand].label.split(";")[0] : "";
-    ctx.fillStyle = col; ctx.fillText(text, cx, by + bh - labelH + 30);
-  }
-
-  finger(ctx, x, y, w, len, number, midis, upcoming, color, dim) {
-    const r = w / 2;
-    roundRect(ctx, x, y, w, len, r);
-    if (midis) { ctx.fillStyle = dim ? shade(color, 0.6) : color; ctx.fill(); ctx.strokeStyle = "#ffffff55"; ctx.setLineDash([]); ctx.lineWidth = 1.5; ctx.stroke(); }
-    else { ctx.fillStyle = SKIN; ctx.fill(); ctx.strokeStyle = upcoming && !dim ? color : SKIN_EDGE; ctx.setLineDash(upcoming && !dim ? [4, 3] : []); ctx.lineWidth = upcoming ? 2 : 1.2; ctx.stroke(); ctx.setLineDash([]); }
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.font = `${midis ? "bold " : ""}${Math.max(10, Math.min(16, r * 1.4))}px Segoe UI, sans-serif`;
-    ctx.fillStyle = midis && !dim ? "#0d1013" : COLORS.text;
-    ctx.fillText(String(number), x + w / 2, y + r + 3);
-    if (midis) { ctx.font = "10px Segoe UI, sans-serif"; ctx.fillStyle = dim ? COLORS.textDim : color; ctx.fillText(midis.slice().sort().map(noteName).join(" "), x + w / 2, y - 9); }
+    ctx.globalAlpha = dim ? 0.3 : 0.5;
+    ctx.fillStyle = color;
+    roundRect(ctx, left, palmTop, right - left, palmBottom - palmTop, 14); ctx.fill();
+    for (const f of fingers) {
+      const midi = state.pressed[f.number];
+      const pressing = midi !== undefined;
+      const thumb = f.number === 1;
+      const tip = pressing ? (isWhite(midi) ? h * 0.30 : h * 0.10) : thumb ? h * 0.64 : h * (0.46 + 0.03 * Math.abs(f.number - 3));
+      ctx.globalAlpha = pressing ? 0.92 : dim ? 0.3 : 0.55;
+      ctx.fillStyle = color;
+      roundRect(ctx, f.x - fw / 2, tip, fw, palmTop + 6 - tip, fw / 2); ctx.fill();
+      ctx.globalAlpha = 1;
+      const r = fw * 0.44;
+      ctx.beginPath(); ctx.arc(f.x, tip + fw * 0.62, r, 0, Math.PI * 2);
+      ctx.fillStyle = pressing ? COLORS.keybed : "rgba(10,13,14,0.65)"; ctx.fill();
+      ctx.fillStyle = pressing ? color : "rgba(233,238,240,0.7)";
+      ctx.font = `500 ${Math.max(9, Math.min(13, r * 1.5))}px ${FONT_MONO}`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(String(f.number), f.x, tip + fw * 0.62 + 0.5);
+    }
     ctx.textBaseline = "alphabetic";
+    ctx.restore();
   }
 }
 
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
-}
+/* ----------------------------------------------------------------- tape */
 
-/* ---------------------------------------------------------------- lane */
-
+/* The note lane, drawn on the staff's own x-axis when the score supplies one
+ * (so bar 2 sits under bar 2), and on its own scrolling axis when it cannot. */
 export class Lane {
   constructor(canvas, settings) {
     this.canvas = canvas; this.settings = settings;
     this.lesson = null; this.position = 0; this.dim = []; this.loopRange = null;
+    this.mapper = null;               // { from, to, xOf(division) } from the score
     this.pxPerDivision = 5; this.playheadFraction = 0.28;
     this.onSeek = null;
     canvas.addEventListener("click", (e) => {
@@ -294,62 +203,170 @@ export class Lane {
       const rect = canvas.getBoundingClientRect();
       this.onSeek(Math.max(0, this.divisionAt(e.clientX - rect.left)));
     });
-    canvas.addEventListener("wheel", (e) => {
-      if (!e.ctrlKey) return;
-      e.preventDefault();
-      this.pxPerDivision = Math.max(1.5, Math.min(20, this.pxPerDivision * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
-      this.draw();
-    }, { passive: false });
-    new ResizeObserver(() => this.draw()).observe(canvas);
+    new ResizeObserver(() => this.draw()).observe(canvas.parentElement || canvas);
   }
   setLesson(lesson) { this.lesson = lesson; this.position = 0; this.loopRange = null; this.draw(); }
   setPosition(d) { this.position = d; this.draw(); }
   setDim(hands) { this.dim = hands; this.draw(); }
   setLoopRange(r) { this.loopRange = r; this.draw(); }
+  setMapper(m) { this.mapper = m; this.draw(); }
 
-  x(d) { return this.canvas.clientWidth * this.playheadFraction + (d - this.position) * this.pxPerDivision; }
-  divisionAt(x) { return this.position + (x - this.canvas.clientWidth * this.playheadFraction) / this.pxPerDivision; }
+  x(d) {
+    if (this.mapper) return this.mapper.xOf(d);
+    return this.canvas.clientWidth * this.playheadFraction + (d - this.position) * this.pxPerDivision;
+  }
+  divisionAt(x) {
+    if (this.mapper) {
+      const { from, to } = this.mapper, x0 = this.mapper.xOf(from), x1 = this.mapper.xOf(to);
+      return from + (to - from) * ((x - x0) / Math.max(1, x1 - x0));
+    }
+    return this.position + (x - this.canvas.clientWidth * this.playheadFraction) / this.pxPerDivision;
+  }
 
   draw() {
     const [ctx, w, h] = setupCanvas(this.canvas);
-    ctx.fillStyle = COLORS.panel; ctx.fillRect(0, 0, w, h);
     const lesson = this.lesson;
     if (!lesson) return;
-    const lo = lesson.midi_range[0] - 2, hi = lesson.midi_range[1] + 2;
-    const rowH = Math.max(4, (h - 22) / Math.max(8, hi - lo + 1)), top = 18;
-    const yOf = (m) => h - 4 - (m - lo + 1) * rowH;
-    for (let m = lo; m <= hi; m++) {
-      ctx.fillStyle = isWhite(m) ? COLORS.panelAlt : COLORS.bg; ctx.fillRect(0, yOf(m), w, rowH);
-      if (m % 12 === 0) { ctx.strokeStyle = "#3d4553"; ctx.beginPath(); ctx.moveTo(0, yOf(m) + rowH); ctx.lineTo(w, yOf(m) + rowH); ctx.stroke(); }
+    // Rows are white keys, not semitones: two octaves then fit in 74 px with
+    // bars thick enough to read, and a black key sits between its neighbours.
+    const lo = whiteIndex(lesson.midi_range[0]), hi = whiteIndex(lesson.midi_range[1]);
+    const rowH = Math.max(4, (h - 8) / Math.max(5, hi - lo + 1));
+    const top = Math.max(4, (h - (hi - lo + 1) * rowH) / 2);
+    const yOf = (m) => top + (hi - whiteIndex(m)) * rowH;
+    const M = lesson.measure_divisions;
+    const view = this.mapper ? [this.mapper.from, this.mapper.to] : [this.divisionAt(0), this.divisionAt(w)];
+
+    if (this.loopRange) {
+      const a = this.x(Math.max(view[0], this.loopRange[0])), b = this.x(Math.min(view[1], this.loopRange[1]));
+      if (b > a) { ctx.fillStyle = "rgba(70,215,161,0.07)"; ctx.fillRect(a, 0, b - a, h); }
     }
-    if (this.loopRange) { ctx.fillStyle = "rgba(44,139,109,0.16)"; ctx.fillRect(this.x(this.loopRange[0]), top, this.x(this.loopRange[1]) - this.x(this.loopRange[0]), h - top); }
-    const M = lesson.measure_divisions, beat = lesson.beat_divisions;
-    ctx.font = "10px Segoe UI, sans-serif"; ctx.textAlign = "left";
-    const first = Math.floor(Math.max(0, this.divisionAt(0)) / beat) * beat, last = Math.floor(this.divisionAt(w) / beat) * beat + beat;
-    for (let d = first; d <= Math.max(last, lesson.length); d += beat) {
-      const x = this.x(d);
+    // Bar lines only: the tape is a reminder, not a second score.
+    ctx.strokeStyle = COLORS.hairline; ctx.lineWidth = 1;
+    for (let d = Math.floor(view[0] / M) * M; d <= view[1]; d += M) {
+      const x = Math.round(this.x(d)) + 0.5;
       if (x < 0 || x > w) continue;
-      const bar = d % M === 0;
-      ctx.strokeStyle = bar ? "#4a5261" : "#2e343e"; ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, top); ctx.lineTo(Math.round(x) + 0.5, h); ctx.stroke();
-      if (bar && d < lesson.length) { ctx.fillStyle = COLORS.textDim; ctx.fillText(String(d / M + 1), x + 3, 12); }
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
     }
-    const endX = this.x(lesson.length);
-    if (endX < w) { ctx.strokeStyle = COLORS.textDim; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(endX, top); ctx.lineTo(endX, h); ctx.stroke(); ctx.lineWidth = 1; }
     const showFingers = this.settings.get("show.laneFingers");
-    ctx.font = `bold ${Math.max(7, Math.min(10, rowH * 0.9))}px Segoe UI, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `500 ${Math.max(7, Math.min(10, rowH * 1.1))}px ${FONT_MONO}`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
     for (const n of lesson.notes) {
+      if (n.start + n.duration < view[0] || n.start > view[1]) continue;
       const x0 = this.x(n.start), x1 = this.x(n.start + n.duration);
-      if (x1 < 0 || x0 > w) continue;
+      if (x1 < -4 || x0 > w + 4) continue;
       const y = yOf(n.midi), on = n.start <= this.position && this.position < n.start + n.duration;
       const dim = this.dim.includes(n.hand);
-      ctx.fillStyle = dim ? shade(HAND_DIM[n.hand], 0.7) : on ? HAND_COLOR[n.hand] : n.start + n.duration <= this.position ? HAND_DIM[n.hand] : HAND_COLOR[n.hand];
+      ctx.fillStyle = dim ? shade(HAND_DIM[n.hand], 0.8) : on ? HAND_COLOR[n.hand] : shade(HAND_COLOR[n.hand], 0.55);
       const rw = Math.max(3, x1 - x0 - 2);
-      roundRect(ctx, x0 + 1, y + 0.5, rw, rowH - 1, 2.5); ctx.fill();
-      if (on && !dim) { ctx.strokeStyle = "#fff"; ctx.stroke(); }
-      if (showFingers && n.shown && rw > 10 && rowH >= 7) { ctx.fillStyle = dim ? COLORS.textDim : "#0d1013"; ctx.fillText(String(n.shown), x0 + 1 + rw / 2, y + rowH / 2 + 0.5); }
+      roundRect(ctx, x0 + 1, y + 0.5, rw, Math.max(2, rowH - 1), 2); ctx.fill();
+      if (showFingers && n.shown && rw > 11 && rowH >= 8) {
+        ctx.fillStyle = on ? COLORS.keybed : "rgba(10,13,14,0.75)";
+        ctx.fillText(String(n.shown), x0 + 1 + rw / 2, y + rowH / 2 + 0.5);
+      }
     }
     ctx.textBaseline = "alphabetic";
-    const px = w * this.playheadFraction;
-    ctx.strokeStyle = COLORS.playhead; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke(); ctx.lineWidth = 1;
+    const px = this.x(this.position);
+    if (px >= 0 && px <= w) {
+      ctx.strokeStyle = COLORS.now; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke();
+    }
+  }
+}
+
+/* ---------------------------------------------------------------- trace */
+
+/* The pitch trace: what Danas Ear draws, here taking the staff's place in
+ * Ear mode. Points are {t, midiFloat|null, clarity}. */
+export class Trace {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.points = [];
+    this.seconds = 20;
+    this.lo = 48; this.hi = 84;
+    new ResizeObserver(() => this.draw()).observe(canvas.parentElement || canvas);
+  }
+  clear() { this.points = []; this.lo = 48; this.hi = 84; this.draw(); }
+  push(t, reading) {
+    this.points.push({ t, midi: reading ? reading.midiFloat : null, clarity: reading ? reading.clarity : 0 });
+    while (this.points.length && this.points[0].t < t - this.seconds) this.points.shift();
+    if (reading) {
+      this.lo = Math.min(this.lo, Math.floor(reading.midiFloat) - 4);
+      this.hi = Math.max(this.hi, Math.ceil(reading.midiFloat) + 4);
+    }
+    this.draw();
+  }
+  draw() {
+    const [ctx, w, h] = setupCanvas(this.canvas);
+    const lo = this.lo, hi = this.hi;
+    const yOf = (m) => h - 12 - ((m - lo) / Math.max(1, hi - lo)) * (h - 28);
+    ctx.font = `10px ${FONT_MONO}`; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    for (let m = Math.ceil(lo / 12) * 12; m <= hi; m += 12) {
+      const y = yOf(m);
+      ctx.strokeStyle = COLORS.hairline; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(36, y); ctx.lineTo(w - 6, y); ctx.stroke();
+      ctx.fillStyle = COLORS.quiet; ctx.fillText(noteName(m), 8, y);
+    }
+    const now = this.points.length ? this.points[this.points.length - 1].t : 0;
+    const xOf = (t) => 36 + ((t - (now - this.seconds)) / this.seconds) * (w - 42);
+    ctx.fillStyle = COLORS.now;
+    for (const p of this.points) {
+      if (p.midi === null) continue;
+      ctx.globalAlpha = 0.3 + 0.7 * p.clarity;
+      ctx.fillRect(xOf(p.t) - 1, yOf(p.midi) - 1.5, 2.5, 3);
+    }
+    ctx.globalAlpha = 1;
+    ctx.textBaseline = "alphabetic";
+    if (!this.points.some((p) => p.midi !== null)) {
+      ctx.fillStyle = COLORS.quiet; ctx.textAlign = "center"; ctx.font = `13.5px ${FONT_SANS}`;
+      ctx.fillText("Play a note — the pitch you sound is drawn here.", w / 2, h / 2);
+    }
+  }
+}
+
+/* --------------------------------------------------------------- ribbon */
+
+/* Tuner ribbon: the cents meter and the clarity sparkline under the staff. */
+export class Ribbon {
+  constructor(meterCanvas, sparkCanvas) {
+    this.meter = meterCanvas; this.spark = sparkCanvas;
+    this.history = [];
+    this.last = null;
+    const redraw = () => this.paint();
+    new ResizeObserver(redraw).observe(meterCanvas.parentElement || meterCanvas);
+    new ResizeObserver(redraw).observe(sparkCanvas.parentElement || sparkCanvas);
+  }
+  draw(reading) {
+    this.last = reading;
+    this.history.push(reading ? reading.clarity : 0);
+    if (this.history.length > 200) this.history.shift();
+    this.paint();
+  }
+  clear() { this.history = []; this.last = null; this.paint(); }
+  paint() {
+    const reading = this.last;
+    const [m, mw, mh] = setupCanvas(this.meter);
+    const mid = mw / 2, y = mh / 2;
+    m.strokeStyle = COLORS.hairline; m.lineWidth = 1;
+    m.beginPath(); m.moveTo(0, y); m.lineTo(mw, y); m.stroke();
+    for (let c = -50; c <= 50; c += 10) {
+      const x = mid + (c / 50) * (mw / 2 - 4);
+      const tall = c === 0 ? 9 : c % 50 === 0 ? 6 : 3;
+      m.beginPath(); m.moveTo(x, y - tall); m.lineTo(x, y + tall); m.stroke();
+    }
+    if (reading) {
+      const x = mid + (Math.max(-50, Math.min(50, reading.cents)) / 50) * (mw / 2 - 4);
+      m.strokeStyle = Math.abs(reading.cents) <= 5 ? COLORS.now : Math.abs(reading.cents) <= 20 ? COLORS.wrong : COLORS.missed;
+      m.lineWidth = 2.5;
+      m.beginPath(); m.moveTo(x, 3); m.lineTo(x, mh - 3); m.stroke();
+    }
+    const [s, sw, sh] = setupCanvas(this.spark);
+    if (this.history.length > 1) {
+      s.strokeStyle = COLORS.now; s.lineWidth = 1.2; s.beginPath();
+      this.history.forEach((c, i) => {
+        const x = (i / (this.history.length - 1)) * sw, yy = sh - 3 - c * (sh - 6);
+        i ? s.lineTo(x, yy) : s.moveTo(x, yy);
+      });
+      s.stroke();
+    }
   }
 }

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Parts and palette</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&amp;family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#0E1214;font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+    button{font:inherit;color:inherit}
+    a{color:#46D7A1}a:hover{color:#6FE4B8}
+    input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;height:16px}
+    input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:#2A3437}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;margin-top:-4.5px;border-radius:50%;background:#46D7A1;border:0;cursor:pointer}
+    input[type=range]::-moz-range-track{height:3px;border-radius:2px;background:#2A3437}
+    input[type=range]::-moz-range-thumb{width:12px;height:12px;border:0;border-radius:50%;background:#46D7A1;cursor:pointer}
+  </style>
+</helmet>
+
+<div style="width: 1200px; height: 980px; background: #0E1214; color: #E9EEF0; padding: 48px; display: flex; flex-direction: column; gap: 32px; overflow: hidden;">
+
+  <div style="display: flex; flex-direction: column; gap: 9px;">
+    <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: #6E7C81;">PARTS</span>
+    <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: 36px; line-height: 1.1; font-weight: 400; color: #F2F6F7;">Everything the screen is made of.</h1>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 656px minmax(0, 1fr); column-gap: 48px; row-gap: 0;">
+
+    <!-- left column -->
+    <div style="display: flex; flex-direction: column; gap: 30px;">
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #6E7C81;">TRANSPORT · FLOATS OVER THE KEYBED</span>
+        <div style="height: 52px; display: inline-flex; align-self: flex-start; align-items: center; gap: 10px; padding: 0 10px 0 6px; border: 1px solid #273034; border-radius: 26px; background: #151B1E; box-shadow: 0 10px 34px rgba(0,0,0,0.55);">
+          <button type="button" aria-label="Play" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 20px; background: #46D7A1; color: #0A0D0E; cursor: pointer;">
+            <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path d="M5.4 3.6 14 9l-8.6 5.4Z" fill="currentColor"></path></svg>
+          </button>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C6D0D3; min-width: 88px;">bar 1 · beat 1</span>
+          <span style="width: 1px; height: 20px; background: #273034;"></span>
+          <label for="t2" style="font-family: 'Instrument Serif', Georgia, serif; font-size: 16px; color: #8C9A9F; cursor: pointer;">♩</label>
+          <input id="t2" type="range" min="40" max="160" value="72" style="width: 92px;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C6D0D3; min-width: 22px;">72</span>
+          <span style="width: 1px; height: 20px; background: #273034;"></span>
+          <span style="display: flex; align-items: center; gap: 2px;">
+            <span style="height: 26px; min-width: 26px; padding: 0 8px; display: flex; align-items: center; justify-content: center; border-radius: 7px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #7E8C91;">L</span>
+            <span style="height: 26px; padding: 0 8px; display: flex; align-items: center; justify-content: center; border-radius: 7px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #7E8C91;">Both</span>
+            <span style="height: 26px; min-width: 26px; padding: 0 8px; display: flex; align-items: center; justify-content: center; border-radius: 7px; background: rgba(70,215,161,0.14); font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #46D7A1;">R</span>
+          </span>
+          <span style="width: 1px; height: 20px; background: #273034;"></span>
+          <button type="button" aria-label="Metronome on" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 9px; background: rgba(70,215,161,0.14); color: #46D7A1; cursor: pointer;">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h4l2.6 12H4.4z"></path><path d="M11.9 5.6 5.5 12.4"></path></svg>
+          </button>
+          <button type="button" style="height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 0; border-radius: 9px; background: transparent; color: #8C9A9F; cursor: pointer;">
+            <svg width="15" height="15" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.4 7.4v-1a2.2 2.2 0 0 1 2.2-2.2h7"></path><path d="m11.6 2.2 2.2 2 -2.2 2"></path><path d="M13.6 10.6v1a2.2 2.2 0 0 1-2.2 2.2h-7"></path><path d="m6.4 11.8-2.2 2 2.2 2"></path></svg>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">1–3</span>
+          </button>
+        </div>
+        <span style="font-size: 12.5px; line-height: 1.5; color: #7E8C91;">Seven things, and every one of them changes while you play. Count‑in, voice and bar range moved into ⌘K, where they are set once before you start.</span>
+      </div>
+
+      <div style="height: 1px; background: #1E2629;"></div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #6E7C81;">TUNER RIBBON · ALL THAT IS LEFT OF A SECOND APP</span>
+        <div style="height: 46px; display: flex; align-items: center; gap: 20px; padding: 0 18px; border-top: 1px solid #1E2629; border-bottom: 1px solid #1E2629; background: rgba(70,215,161,0.035);">
+          <span style="display: flex; align-items: baseline; gap: 9px;">
+            <span style="font-size: 17px; font-weight: 600; color: #46D7A1;">A3</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #96A3A8;">220.4 Hz</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #96A3A8;">+3 ¢</span>
+          </span>
+          <span style="flex-grow: 1;"></span>
+          <svg width="260" height="26" viewBox="0 0 330 26" aria-hidden="true">
+            <path d="M0 13h330" stroke="#232C2F" stroke-width="1"></path>
+            <g stroke="#2E393C" stroke-width="1"><path d="M1 7v12M83 9v8M247 9v8M329 7v12"></path></g>
+            <path d="M165 3v20" stroke="#3E4B4F" stroke-width="1.4"></path>
+            <rect x="165" y="9" width="10" height="8" rx="4" fill="#46D7A1" opacity="0.28"></rect>
+            <path d="M175 1v24" stroke="#46D7A1" stroke-width="2.4" stroke-linecap="round"></path>
+            <g font-family="'JetBrains Mono',monospace" font-size="9" fill="#5F6D72"><text x="0" y="26">−50</text><text x="308" y="26">+50</text></g>
+          </svg>
+          <span style="flex-grow: 1;"></span>
+          <span style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em; color: #6E7C81;">CLARITY</span>
+            <svg width="110" height="22" viewBox="0 0 150 22" aria-hidden="true"><path d="M0 16 12 15 24 11 36 12 48 6 60 7 72 5 84 6 96 4 108 5 120 4 132 5 148 4" fill="none" stroke="#46D7A1" stroke-width="1.6" stroke-linecap="round" opacity="0.8"></path></svg>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #C6D0D3;">0.92</span>
+          </span>
+        </div>
+        <span style="font-size: 12.5px; line-height: 1.5; color: #7E8C91;">Note, hertz, cents, clarity and the 12‑second trace of Danas Ear, in 46 px directly under the staff you are reading. The full trace opens in Ear.</span>
+      </div>
+
+      <div style="height: 1px; background: #1E2629;"></div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #6E7C81;">HANDS ON THE KEYS · NOT IN A BOX BESIDE THEM</span>
+        <svg width="420" height="220" viewBox="0 0 420 220" role="img" aria-label="Close-up of five keys with the right hand resting on them, fingers numbered one to five">
+          <g fill="#E4EAEC">
+            <rect x="10" y="10" width="78" height="180" rx="3"></rect><rect x="90" y="10" width="78" height="180" rx="3"></rect>
+            <rect x="170" y="10" width="78" height="180" rx="3"></rect><rect x="250" y="10" width="78" height="180" rx="3"></rect>
+            <rect x="330" y="10" width="78" height="180" rx="3"></rect>
+          </g>
+          <rect x="10" y="184" width="398" height="6" fill="#B4C0C3"></rect>
+          <g fill="#14191B"><rect x="66" y="10" width="44" height="116" rx="4"></rect><rect x="146" y="10" width="44" height="116" rx="4"></rect><rect x="306" y="10" width="44" height="116" rx="4"></rect><rect x="386" y="10" width="34" height="116" rx="4"></rect></g>
+          <rect x="24" y="12" width="372" height="42" rx="21" fill="rgba(70,215,161,0.13)" stroke="#46D7A1" stroke-opacity="0.5" stroke-width="1.6"></rect>
+          <g fill="rgba(70,215,161,0.16)" stroke="#46D7A1" stroke-opacity="0.45" stroke-width="1.4">
+            <rect x="116" y="50" width="26" height="110" rx="13"></rect><rect x="196" y="50" width="26" height="110" rx="13"></rect>
+            <rect x="276" y="50" width="26" height="110" rx="13"></rect><rect x="356" y="50" width="26" height="110" rx="13"></rect>
+          </g>
+          <rect x="36" y="50" width="26" height="110" rx="13" fill="rgba(70,215,161,0.55)" stroke="#46D7A1" stroke-width="1.4"></rect>
+          <g font-family="'Instrument Sans',sans-serif" font-size="14" font-weight="600" text-anchor="middle">
+            <circle cx="49" cy="142" r="14" fill="#0A0D0E"></circle><text x="49" y="147" fill="#46D7A1">1</text>
+            <circle cx="129" cy="142" r="14" fill="#0A0D0E" opacity="0.72"></circle><text x="129" y="147" fill="#9FEBCE">2</text>
+            <circle cx="209" cy="142" r="14" fill="#0A0D0E" opacity="0.72"></circle><text x="209" y="147" fill="#9FEBCE">3</text>
+            <circle cx="289" cy="142" r="14" fill="#0A0D0E" opacity="0.72"></circle><text x="289" y="147" fill="#9FEBCE">4</text>
+            <circle cx="369" cy="142" r="14" fill="#0A0D0E" opacity="0.72"></circle><text x="369" y="147" fill="#9FEBCE">5</text>
+          </g>
+          <g font-family="'JetBrains Mono',monospace" font-size="11" fill="#5A6367" text-anchor="middle">
+            <text x="49" y="178">C4</text><text x="129" y="178">D4</text><text x="209" y="178">E4</text><text x="289" y="178">F4</text><text x="369" y="178">G4</text>
+          </g>
+          <g font-family="'Instrument Sans',sans-serif" font-size="12" fill="#7E8C91">
+            <text x="10" y="212">Solid = pressing now. Outline = resting, in position.</text>
+          </g>
+        </svg>
+      </div>
+
+      <div style="height: 1px; background: #1E2629;"></div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #6E7C81;">⌘K · WHERE EVERY RARE CONTROL WENT</span>
+        <div style="width: 420px; border: 1px solid #273034; border-radius: 14px; background: #151B1E; box-shadow: 0 16px 44px rgba(0,0,0,0.6); overflow: hidden;">
+          <div style="display: flex; align-items: center; gap: 11px; height: 46px; padding: 0 16px; border-bottom: 1px solid #1E2629;">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="#6E7C81" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="7.6" cy="7.6" r="5.1"></circle><path d="M11.4 11.4 15 15"></path></svg>
+            <span style="font-size: 13.5px; color: #E9EEF0;">pri</span>
+            <span style="width: 1px; height: 16px; background: #46D7A1;"></span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 38px; padding: 0 16px; background: rgba(70,215,161,0.1);">
+            <span style="font-size: 13px; color: #E9EEF0;">Print · PDF</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #46D7A1;">⌘P</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 38px; padding: 0 16px;">
+            <span style="font-size: 13px; color: #C6D0D3;">Export MusicXML</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #647176;">⇧⌘M</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 38px; padding: 0 16px;">
+            <span style="font-size: 13px; color: #C6D0D3;">Render WAV</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #647176;">⇧⌘W</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 38px; padding: 0 16px;">
+            <span style="font-size: 13px; color: #C6D0D3;">Share a link to this lesson</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; height: 38px; padding: 0 16px; border-top: 1px solid #1E2629;">
+            <span style="font-size: 13px; color: #C6D0D3;">Count‑in · 1 bar</span><span style="font-size: 12px; color: #647176;">Playback</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- right column -->
+    <div style="display: flex; flex-direction: column; gap: 30px;">
+
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #6E7C81;">TYPE · THREE FACES, THREE JOBS</span>
+        <span style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 31px; color: #F2F6F7;">Right Hand Walk</span>
+          <span style="font-size: 12px; color: #7E8C91;">Instrument Serif — titles and the one big number. Engraved, not shouted.</span>
+        </span>
+        <span style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 15px; color: #E9EEF0;">Curve the fingers; play on the tips.</span>
+          <span style="font-size: 12px; color: #7E8C91;">Instrument Sans 15 / 13.5 / 12.5 — everything you read.</span>
+        </span>
+        <span style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C6D0D3;">bar 1 · beat 1 · 220.4 Hz · +3 ¢ · 72</span>
+          <span style="font-size: 12px; color: #7E8C91;">JetBrains Mono 12 / 11 / 10 — anything that changes while you play, so nothing jitters.</span>
+        </span>
+      </div>
+
+      <div style="height: 1px; background: #1E2629;"></div>
+
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #6E7C81;">COLOUR · ONE ACCENT, AND IT MEANS "NOW"</span>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 14px;">
+          <span style="display: flex; align-items: center; gap: 11px;"><span style="width: 34px; height: 34px; border-radius: 9px; background: #0E1214; border: 1px solid #2A3437;"></span><span style="display: flex; flex-direction: column;"><span style="font-size: 12.5px; color: #D5DDDF;">Ground</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #7E8C91;">#0E1214</span></span></span>
+          <span style="display: flex; align-items: center; gap: 11px;"><span style="width: 34px; height: 34px; border-radius: 9px; background: #0A0D0E; border: 1px solid #2A3437;"></span><span style="display: flex; flex-direction: column;"><span style="font-size: 12.5px; color: #D5DDDF;">Keybed</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #7E8C91;">#0A0D0E</span></span></span>
+          <span style="display: flex; align-items: center; gap: 11px;"><span style="width: 34px; height: 34px; border-radius: 9px; background: #1E2629;"></span><span style="display: flex; flex-direction: column;"><span style="font-size: 12.5px; color: #D5DDDF;">Hairline</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #7E8C91;">#1E2629</span></span></span>
+          <span style="display: flex; align-items: center; gap: 11px;"><span style="width: 34px; height: 34px; border-radius: 9px; background: #E9EEF0;"></span><span style="display: flex; flex-direction: column;"><span style="font-size: 12.5px; color: #D5DDDF;">Ink</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #7E8C91;">#E9EEF0</span></span></span>
+          <span style="display: flex; align-items: center; gap: 11px;"><span style="width: 34px; height: 34px; border-radius: 9px; background: #96A3A8;"></span><span style="display: flex; flex-direction: column;"><span style="font-size: 12.5px; color: #D5DDDF;">Ink, quiet</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #7E8C91;">#96A3A8</span></span></span>
+          <span style="display: flex; align-items: center; gap: 11px;"><span style="width: 34px; height: 34px; border-radius: 9px; background: #46D7A1;"></span><span style="display: flex; flex-direction: column;"><span style="font-size: 12.5px; color: #D5DDDF;">Now</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #7E8C91;">#46D7A1</span></span></span>
+          <span style="display: flex; align-items: center; gap: 11px;"><span style="width: 34px; height: 34px; border-radius: 9px; background: #E9B44C;"></span><span style="display: flex; flex-direction: column;"><span style="font-size: 12.5px; color: #D5DDDF;">Wrong note</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #7E8C91;">#E9B44C</span></span></span>
+          <span style="display: flex; align-items: center; gap: 11px;"><span style="width: 34px; height: 34px; border-radius: 9px; background: #F08079;"></span><span style="display: flex; flex-direction: column;"><span style="font-size: 12.5px; color: #D5DDDF;">Not heard</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #7E8C91;">#F08079</span></span></span>
+        </div>
+      </div>
+
+      <div style="height: 1px; background: #1E2629;"></div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #6E7C81;">THE FIVE RULES</span>
+        <span style="display: flex; gap: 12px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #46D7A1; padding-top: 2px;">01</span><span style="font-size: 13.5px; line-height: 1.55; color: #C6D0D3;">One accent. Mint is always "now" — the note being played, the key being held, the pitch being heard. Nothing decorative is ever coloured.</span></span>
+        <span style="display: flex; gap: 12px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #46D7A1; padding-top: 2px;">02</span><span style="font-size: 13.5px; line-height: 1.55; color: #C6D0D3;">No cards. Regions are divided by a single 1 px hairline; nothing is a box inside a box inside a panel.</span></span>
+        <span style="display: flex; gap: 12px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #46D7A1; padding-top: 2px;">03</span><span style="font-size: 13.5px; line-height: 1.55; color: #C6D0D3;">Chrome earns its place: a 52 px bar, a 52 px rail, one floating transport. 88 % of the screen is the lesson.</span></span>
+        <span style="display: flex; gap: 12px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #46D7A1; padding-top: 2px;">04</span><span style="font-size: 13.5px; line-height: 1.55; color: #C6D0D3;">A control that changes while you play lives on the screen. One that is set once lives in ⌘K.</span></span>
+        <span style="display: flex; gap: 12px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #46D7A1; padding-top: 2px;">05</span><span style="font-size: 13.5px; line-height: 1.55; color: #C6D0D3;">Information is drawn on the thing it describes: fingers on keys, tuning under the staff, misses on the notes that were missed.</span></span>
+      </div>
+
+      <div style="height: 1px; background: #1E2629;"></div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #6E7C81;">GRID</span>
+        <span style="display: flex; justify-content: space-between; font-size: 12.5px;"><span style="color: #8C9A9F;">Columns at 1440</span><span style="font-family: 'JetBrains Mono', monospace; color: #C6D0D3;">52 · 996 · 392</span></span>
+        <span style="display: flex; justify-content: space-between; font-size: 12.5px;"><span style="color: #8C9A9F;">Bands</span><span style="font-family: 'JetBrains Mono', monospace; color: #C6D0D3;">52 bar · 46 ribbon · 74 tape · 182 keys</span></span>
+        <span style="display: flex; justify-content: space-between; font-size: 12.5px;"><span style="color: #8C9A9F;">Radius</span><span style="font-family: 'JetBrains Mono', monospace; color: #C6D0D3;">7 · 8 · 12 · 26</span></span>
+        <span style="display: flex; justify-content: space-between; font-size: 12.5px;"><span style="color: #8C9A9F;">Smallest hit area</span><span style="font-family: 'JetBrains Mono', monospace; color: #C6D0D3;">40 × 40</span></span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
