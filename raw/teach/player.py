@@ -115,10 +115,17 @@ def note_overrides(note: Note, root_midi: float, seconds_per_division: float, ga
     }
 
 
+# Noise carries less loudness than a sine at the same peak, so the practice
+# click gets make-up gain; measured A-weighted, this brings it level with the
+# ordinary click instead of 6 dB under it.
+UNPITCHED_MAKEUP_DB = 6.0
+
+
 def _clicks(cache, options: "PlayOptions", sr: int):
     """The beat and downbeat clicks, cached under their own keys."""
     suffix = "_np" if options.metronome_unpitched else ""
-    gain = {"volume_db": options.metronome_db}
+    db = options.metronome_db + (UNPITCHED_MAKEUP_DB if options.metronome_unpitched else 0.0)
+    gain = {"volume_db": db}
     tick = cache.render("click" + suffix, voices.click(False, options.metronome_unpitched), gain, sr)
     accent = cache.render("click_accent" + suffix, voices.click(True, options.metronome_unpitched), gain, sr)
     return tick, accent

@@ -323,6 +323,7 @@ class App {
     document.querySelector(".tape-box").hidden = mode === "ear" || !this.settings.get("view.lane");
 
     if (leaving === "ear" && mode !== "ear") this.stopFreeListening();
+    this.applyListening();
     if (mode === "ear") this.startFreeListening();
     else if (mode === "practice" && !$("listen").checked) this.status("Tick Listen in the top bar to be scored.", 8000);
     this.refreshKeys();
@@ -523,10 +524,17 @@ class App {
       this.ribbon.clear();
       this.showHeard(null);
     }
-    // The piano is muted while listening, so the microphone hears only the
-    // student — and the metronome switches to its unpitched click, which the
-    // detector cannot mistake for a played note (raw/teach/voice.py).
-    this.transport.updateOptions({ voice_db: on ? -100 : -12, metronome_unpitched: on });
+    this.applyListening();
+  }
+
+  /* The piano is muted only where the microphone is being scored — in
+   * Practice. In Learn the point is to hear the piece, and in Ear there is
+   * nothing playing anyway. The click becomes the unpitched one whenever the
+   * microphone is open, so it can never be read as a played note. */
+  applyListening() {
+    const on = $("listen").checked && this.listener.active;
+    const mute = on && this.mode === "practice";
+    this.transport.updateOptions({ voice_db: mute ? -100 : -12, metronome_unpitched: on });
   }
 
   showHeard(reading) {

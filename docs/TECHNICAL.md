@@ -1004,9 +1004,10 @@ microphone by the Caddyfile.
 
 ### 14.7.2 Practice mode
 
-Ticking **Listen** in the top bar opens the microphone on the
-*transport's* `AudioContext` (one clock for both) and sets `voice_db` to -100,
-so the piano is muted while the count-in and metronome keep playing.
+Ticking **Listen** in the top bar opens the microphone on the *transport's*
+`AudioContext` (one clock for both). The piano is then muted (`voice_db` to
+-100) **in Practice only**, where the microphone is being scored; in Learn
+the point is to hear the piece, so it keeps playing.
 
 The metronome also changes voice. The ordinary click is a short sine
 (1500 Hz, 2200 Hz accented), which is the worst possible sound to play at a
@@ -1014,10 +1015,19 @@ pitch detector: it is perfectly periodic, and measured through the real
 detector it reads as F♯6 at clarity 0.97. Raising its pitch above the 2 kHz
 ceiling would not help either — a periodic tone dips at every multiple of its
 period, so YIN would report a sub-harmonic inside the range. So
-`metronome_unpitched` (`raw/teach/voice.py`) switches to a short noise burst
-high-passed at 3.6 kHz (2.6 kHz accented): audible, with no period to find.
-Over a rendered metronome track the ordinary click is read as a pitch in 23
-frames and the practice click in **none**.
+`metronome_unpitched` (`raw/teach/voice.py`) switches to a short noise burst,
+high-passed at 1.2 kHz (0.9 kHz accented): no period to find. Over a rendered
+metronome track the ordinary click is read as a pitch in 23 frames and the
+practice click in **none**.
+
+Loudness needs care here. Noise spread over a band carries far less loudness
+than a sine at the same peak, and the first version — band-passed at 3.2 kHz
+— measured 16 dB below the ordinary click A-weighted, which with the piano
+muted at the same time sounds like nothing at all. Narrowing the band is what
+throws the energy away, so the click is only lightly high-passed and the
+player gives it `UNPITCHED_MAKEUP_DB` (6 dB) of make-up gain. Measured
+A-weighted: ordinary -4.4 dB, practice -4.8 dB, with YIN clarity 0.33 against
+the ordinary click's 0.98.
 
 One more trap lives here. A window that is near-silent where YIN looks but
 loud at its end — the frame that catches a click's attack — has a difference

@@ -69,13 +69,18 @@ def click(accent: bool = False, unpitched: bool = False) -> SynthParams:
     the notes a lesson uses.
     """
     if unpitched:
+        # Noise spread wide and only lightly high-passed: narrowing the band
+        # throws away the energy, and the click has to carry on a laptop
+        # speaker with the piano muted. The player gives it make-up gain
+        # (`_clicks`), since noise is perceptually quieter than a sine at the
+        # same peak. The accent is longer and a little darker.
         return SynthParams(
-            oscillator="white", duration=0.05 if accent else 0.035, amplitude=0.75,
+            oscillator="white", duration=0.06 if accent else 0.045, amplitude=1.0,
             pitch=Trajectory.constant(C4_HZ),          # noise ignores it; the field is required
-            envelope=ADSR(0.0008, 0.016 if accent else 0.010, 0.0, 0.018),
+            envelope=ADSR(0.0008, 0.026 if accent else 0.020, 0.0, 0.02),
             drift=Drift(0.0), stretch_mode="preserve_attack",
             filters=[FilterNode("highpass",
-                                {"cutoff": 2600.0 if accent else 3600.0, "resonance": 0.9},
+                                {"cutoff": 900.0 if accent else 1200.0, "resonance": 0.8},
                                 True, "v1")],
         )
     return SynthParams(

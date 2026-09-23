@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.6.1",
+    "version": "1.6.2",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -704,6 +704,18 @@
         "Each render ends with a tail of silence for the last note's release; laying the three renders end to end put that tail between the passes, so the beat stopped for 0.35 s at every change of pass (a pass measured 16.583 beats instead of 16).",
         "A pass is now exactly its count-in plus its section, and the renders are mixed in at their pass positions, so a release rings on over the next pass's count-in instead of delaying it.",
         "Measured: 9.6 s per pass at 100 bpm, exactly 16 beats, no click more than 0.2 ms from its beat across the boundary."
+      ]
+    },
+    {
+      "date": "2026-09-23",
+      "version": "1.6.2",
+      "type": "fix",
+      "summary": "Listen no longer sounds silent",
+      "changes": [
+        "The practice click was inaudible: band-passing the noise at 3.2 kHz threw away its energy, leaving it 16 dB below the ordinary click A-weighted while the piano was muted at the same time. It is now lightly high-passed (1.2 kHz, 0.9 kHz accented) with 6 dB of make-up gain in the player — measured A-weighted, ordinary -4.4 dB against practice -4.8 dB, with YIN clarity still 0.33.",
+        "Ticking Listen muted the piano in every mode, including Learn where the point is to hear the piece. The mute now applies only in Practice, where the microphone is scored; the unpitched click is used whenever the microphone is open.",
+        "Verified in the browser: Learn with Listen on renders at peak 0.74 with the piano; Practice at peak 0.67 with the click alone and zero frames read as a note; in a run every count-in peaks at 0.67 and pass 3's section is exactly silent.",
+        "The test now asserts what matters: the practice click is within 3 dB of the ordinary one A-weighted, and never reaches the detector's clarity threshold."
       ]
     }
   ]

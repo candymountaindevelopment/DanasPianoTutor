@@ -547,22 +547,30 @@ class TestPracticeMetronome(unittest.TestCase):
         worst = max(c for c, _ in unpitched)
         self.assertLess(worst, 0.6, f"practice click reads as a pitch (clarity {worst:.2f})")
 
-    def test_practice_click_is_audible_and_high(self):
-        from raw.teach import voice as voices
-        from raw.teach.player import NoteCache
+    @staticmethod
+    def a_weighted_db(x, sample_rate=44100):
+        """Roughly what the ear gets: the level after A-weighting."""
+        spectrum = np.abs(np.fft.rfft(x * np.hanning(len(x))))
+        f = np.clip(np.fft.rfftfreq(len(x), 1 / sample_rate), 20, 20000)
+        a = (12194 ** 2 * f ** 4) / ((f ** 2 + 20.6 ** 2)
+                                     * np.sqrt((f ** 2 + 107.7 ** 2) * (f ** 2 + 737.9 ** 2))
+                                     * (f ** 2 + 12194 ** 2))
+        return 20 * np.log10(np.sqrt(((spectrum * a) ** 2).sum()) / np.sqrt(len(x)) + 1e-12)
 
-        sr = 44100
-        cache = NoteCache()
-        for accent in (False, True):
-            buf = cache.render(f"c{accent}", voices.click(accent, True), {"volume_db": -12.0}, sr)
-            x = np.asarray(buf.samples, dtype=np.float64).reshape(-1)
-            self.assertGreater(float(np.abs(x).max()), 0.05, "practice click is inaudible")
-            spectrum = np.abs(np.fft.rfft(x * np.hanning(len(x))))
-            freqs = np.fft.rfftfreq(len(x), 1 / sr)
-            centroid = float((spectrum * freqs).sum() / max(1e-9, spectrum.sum()))
-            self.assertGreater(centroid, 2000.0, f"practice click energy sits at {centroid:.0f} Hz")
-            below = spectrum[freqs < 2000].sum() / max(1e-9, spectrum.sum())
-            self.assertLess(below, 0.25, "too much of the practice click is inside the detector range")
+    def test_practice_click_is_as_loud_as_the_ordinary_one(self):
+        """Noise carries less loudness than a sine, so the click is given
+        make-up gain; without it the practice metronome sounds like nothing
+        once the piano is muted."""
+        from raw.teach.player import NoteCache, PlayOptions, _clicks
+
+        for accent in (0, 1):
+            ordinary = _clicks(NoteCache(), PlayOptions(metronome_unpitched=False), 44100)[accent]
+            practice = _clicks(NoteCache(), PlayOptions(metronome_unpitched=True), 44100)[accent]
+            a = self.a_weighted_db(np.asarray(ordinary.samples, dtype=np.float64).reshape(-1))
+            b = self.a_weighted_db(np.asarray(practice.samples, dtype=np.float64).reshape(-1))
+            self.assertGreater(b, a - 3.0, f"practice click is {a - b:.1f} dB quieter than the ordinary one")
+            peak = float(np.abs(np.asarray(practice.samples)).max())
+            self.assertLess(peak, 0.9, "practice click is close to clipping")
 
     def test_render_uses_the_practice_click_when_asked(self):
         from raw.teach.authoring import load_lesson_file
