@@ -60,7 +60,7 @@ input.bar { width: 52px; text-align: center; padding: 4px 2px; }
 input.bpm { width: 54px; text-align: center; padding: 4px 2px; }
 label { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
 
-.app { height: 100%; display: flex; flex-direction: column; }
+.app { height: 100%; height: 100dvh; display: flex; flex-direction: column; }
 
 /* ------------------------------------------------------------------ bar */
 .bar { height: var(--bar); flex: none; display: flex; align-items: center; gap: 12px;
@@ -318,6 +318,8 @@ dialog::backdrop { background: rgba(6, 9, 10, 0.72); }
   :root { --panel-w: 320px; }
   .title { font-size: 25px; }
 }
+
+/* Under 900 px the panel stops taking a column and slides over the stage. */
 @media (max-width: 900px) {
   .body { grid-template-columns: var(--rail) minmax(0, 1fr); }
   .panel { position: fixed; z-index: 30; right: 0; top: var(--bar); bottom: 24px; width: min(380px, 86vw);
@@ -325,6 +327,102 @@ dialog::backdrop { background: rgba(6, 9, 10, 0.72); }
   .app:not([data-panel="open"]) .panel { display: none; }
   .transport { gap: 8px; padding: 5px 10px; }
   .pos { min-width: 74px; }
+}
+
+/* ------------------------------------------------------------- touch */
+/* A finger needs 40 px; a mouse does not. */
+@media (pointer: coarse) {
+  .rail-btn, .bar-btn, .t-btn, .seg button, .menu button, .palette-item { min-height: 40px; }
+  .t-btn, .bar-btn { min-width: 40px; }
+  .transport .play { width: 42px; height: 42px; }
+  canvas, .score, .keybed { touch-action: manipulation; }
+  .rail, .bar, .transport { user-select: none; -webkit-user-select: none; }
+}
+
+/* ---------------------------------------------------------- phone: tall */
+@media (max-width: 640px) {
+  :root { --bar: 48px; --rail: 0px; --ribbon: 42px; --tape: 52px; --keys: 188px; }
+
+  .bar { gap: 8px; padding: 0 10px 0 12px; }
+  .brand { display: none; }
+  .bar-mode { font-size: 10px; letter-spacing: 1.2px; }
+  .listen span { display: none; }              /* the tick is the label */
+  .listen { padding: 8px 10px; }
+  .heard { font-size: 13px; min-width: 66px; }
+
+  /* The rail becomes a bottom bar, where a thumb reaches it. */
+  .body { grid-template-columns: minmax(0, 1fr); padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+  .rail { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0;
+    flex-direction: row; justify-content: space-around; align-items: center;
+    height: calc(56px + env(safe-area-inset-bottom)); padding: 0 4px env(safe-area-inset-bottom);
+    border-right: none; border-top: 1px solid var(--hairline); background: #0b0f11; }
+  .rail .spacer { display: none; }
+  .rail-btn { width: auto; flex: 1; max-width: 96px; padding: 6px 0; font-size: 10px; }
+
+  /* The panel is a sheet over the stage, above the bottom rail. */
+  .panel { top: auto; bottom: calc(56px + env(safe-area-inset-bottom)); right: 0; left: 0;
+    width: 100%; max-height: 62vh; border-left: none; border-top: 1px solid var(--hairline);
+    border-radius: 14px 14px 0 0; box-shadow: 0 -18px 40px rgba(0,0,0,0.55); }
+  .panel::before { content: ""; display: block; width: 36px; height: 4px; margin: 8px auto 0;
+    border-radius: 2px; background: var(--hairline); }
+  .pane { padding: 10px 14px 14px; }
+
+  .head { padding: 10px 14px 8px; }
+  .title { font-size: 21px; }
+  .title::after { font-size: 12px; margin-left: 6px; }
+  .meta { font-size: 9.5px; letter-spacing: 1px; margin-top: 3px; }
+  .menu { left: 12px; right: 12px; min-width: 0; top: 46px; }
+
+  .ribbon { gap: 8px; padding: 0 12px; }
+  .r-meter-box { width: 96px; }
+  .r-hz, .r-label, .r-spark-box { display: none; }
+
+  /* No room to float over the keys: the transport takes its own row above
+     them, and scrolls sideways when its seven controls do not fit. */
+  .keybed { display: flex; flex-direction: column; background: none; border-top: none; }
+  .keys-box { position: relative; flex: 1; min-height: 0; border-top: 1px solid var(--hairline);
+    background: var(--keybed); }
+  .transport { position: static; transform: none; flex: none; margin: 0 8px 5px; gap: 8px;
+    padding: 5px 8px; justify-content: flex-start; overflow-x: auto; scrollbar-width: none;
+    border-radius: 22px; }
+  .transport::-webkit-scrollbar { display: none; }
+  .transport > * { flex: none; }
+  .pos { min-width: 0; font-size: 11px; }
+  .transport input[type=range] { width: 64px; }
+  input.bpm { width: 46px; }
+  input.bar { width: 42px; }
+
+  .status { display: none; }                   /* the panel and bar carry the news */
+  .overlay { padding: 8vh 10px 10px; }
+  .sheet { height: 82vh; }
+  .splash-photo { height: 320px; margin-top: -250px; }
+  .splash-band { margin-top: 80px; padding: 0 18px; }
+  .splash-band h1 { font-size: 27px; }
+}
+
+/* ------------------------------------------------------- phone: on its side */
+@media (max-height: 520px) and (orientation: landscape) {
+  :root { --bar: 42px; --rail: 46px; --ribbon: 38px; --tape: 48px; --keys: 104px; }
+
+  .brand { display: none; }
+  .rail-btn span { display: none; }            /* icons only; the bar names the mode */
+  .rail-btn svg { width: 19px; height: 19px; }
+  .rail-btn { width: 40px; padding: 9px 0; }
+
+  .head { padding: 6px 14px 4px; }
+  .title { font-size: 17px; }
+  .meta { display: none; }                     /* the lesson panel has it all */
+  .menu { top: 34px; }
+
+  .panel { top: var(--bar); bottom: 0; width: min(330px, 60vw); }
+  .pane { padding: 10px 14px; }
+  .transport { top: -18px; padding: 4px 10px; gap: 8px; }
+  .transport .play { width: 30px; height: 30px; }
+  .status { display: none; }
+  .splash-photo { height: 210px; margin-top: -170px; }
+  .splash-band { margin-top: 40px; }
+  .splash-band h1 { font-size: 22px; }
+  .splash-band p { margin-bottom: 8px; font-size: 12px; }
 }
 
 /* ---------------------------------------------------------------- print */

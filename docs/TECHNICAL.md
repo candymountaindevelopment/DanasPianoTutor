@@ -944,7 +944,7 @@ the 17 MB runtime) works offline after the first visit. The big immutable
 files (`vendor/`, `core.zip`) are served cache-first; **the app's own files are
 fetched network-first** with a cache fallback, so a new build can never be
 half-applied from a stale cache — the failure mode that once produced a
-runaway canvas from a mismatched stylesheet (§14.6.7).
+runaway canvas from a mismatched stylesheet (§14.6.8).
 
 Two deployments are supported:
 
@@ -962,7 +962,35 @@ Two deployments are supported:
   server and sends the same headers, so anything that would break under the
   real CSP breaks locally first.
 
-### 14.6.7 Canvas sizing
+### 14.6.7 Phones
+
+The same screen, rearranged twice.
+
+**Portrait** (<= 640 px): the rail moves to the bottom, where a thumb reaches
+it, and the panel becomes a sheet that slides up over the stage — closed by
+default, because the staff and the keys are the point; tapping the mode you
+are already in puts it away again, and a finished attempt raises it by
+itself. The transport gives up floating over the keybed and takes its own row
+above it, scrolling sideways if its seven controls do not fit.
+
+**Landscape** (<= 520 px tall): the rail stays on the left but shrinks to
+icons, the title loses its line of small caps (the panel has it all), and
+every band is squeezed so the staff still gets about half the height.
+
+Two things the stylesheet cannot do. The keyboard picks its octave count from
+the width so a white key is never narrower than about 26 px — under a finger,
+two octaves centred on the music beat five octaves of slivers — and the score
+picks a staff size from the width (5 px per staff space on a phone against 8
+on a desktop) so a system fits across the page instead of being scrolled
+sideways. Both are recomputed, debounced, on resize and orientation change,
+and turning the phone also decides afresh whether the panel is a column or a
+sheet.
+
+Touch targets are 40 px under `(pointer: coarse)`, the app is `100dvh` so
+browser chrome cannot push the keyboard off the screen, and the bottom rail
+carries `env(safe-area-inset-bottom)` for a notched phone.
+
+### 14.6.8 Canvas sizing
 
 Every Canvas view sizes its backing store to its box times
 `devicePixelRatio`. A canvas whose *layout* size comes from its own backing
@@ -971,6 +999,14 @@ the browser stops painting it. Canvases take their size from a wrapper element
 and are positioned out of the flow, so the loop cannot form even with a
 missing stylesheet, and both dimensions are clamped as a backstop. Tested at
 ratios 1, 1.25, 1.5 and 2, and with the stylesheet stripped.
+
+The CSS size is also written out explicitly rather than left to `inset: 0`. A
+canvas carries its backing store in a `height` attribute, and for an
+absolutely positioned element a specified height beats stretching between
+`top` and `bottom` — so on a screen with a pixel ratio above 1 the canvas was
+laid out at the backing store's size, twice as tall as its box on a phone.
+`setupCanvas` writes `style.width/height` from the measured box, which
+settles it at every ratio.
 
 ## 14.7 Listening and ranking (`listen/`, `web/src/listen.js`, `ranking.js`)
 

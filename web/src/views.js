@@ -27,11 +27,19 @@ const whiteIndex = (midi) => Math.floor(midi / 12) * 7 + WHITE_INDEX[midi % 12];
 const MAX_SIDE = 8192;
 
 /* Size the backing store to the wrapper's box times the device pixel ratio.
- * The canvas itself never decides how big it is. */
+ * The canvas itself never decides how big it is.
+ *
+ * The CSS size is written out explicitly rather than left to `inset: 0`: a
+ * canvas carries its backing store in a `height` attribute, and that counts
+ * as a specified height, which beats stretching between top and bottom. On a
+ * screen with a pixel ratio above 1 the canvas would otherwise be drawn at
+ * that ratio's size — twice as tall as its box on a phone. */
 function setupCanvas(canvas) {
   const box = canvas.parentElement || canvas;
   const w = Math.max(1, Math.min(MAX_SIDE, box.clientWidth));
   const h = Math.max(1, Math.min(MAX_SIDE, box.clientHeight));
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
   const dpr = Math.min(3, window.devicePixelRatio || 1);
   const bw = Math.max(1, Math.min(MAX_SIDE, Math.round(w * dpr)));
   const bh = Math.max(1, Math.min(MAX_SIDE, Math.round(h * dpr)));
@@ -78,15 +86,30 @@ export class Keyboard {
   }
 
   fit(lesson) {
+    this.lesson = lesson;
     let [lo, hi] = lesson.midi_range;
     for (const hand of ["R", "L"]) {
       const keys = lesson.positions[hand].keys;
       if (keys) { lo = Math.min(lo, keys[0]); hi = Math.max(hi, keys[keys.length - 1]); }
     }
-    this.low = Math.floor(lo / 12) * 12;
-    this.octaves = Math.min(5, Math.max(2, Math.floor((hi - this.low) / 12) + 1));
+    // A white key narrower than ~26 px cannot be hit with a finger, so a
+    // small screen shows fewer octaves and centres them on the music.
+    const box = this.canvas.parentElement || this.canvas;
+    const width = box.clientWidth || 900;
+    const most = Math.max(2, Math.min(5, Math.floor(width / (7 * 26))));
+    const needed = Math.floor((hi - Math.floor(lo / 12) * 12) / 12) + 1;
+    this.octaves = Math.min(most, Math.max(2, needed));
+    const lowest = Math.floor(lo / 12) * 12;
+    // When the octaves on show cannot hold the whole piece, keep the notes in
+    // the middle of them rather than the bottom.
+    const middle = Math.floor((lo + hi) / 2);
+    const start = Math.floor((middle - this.octaves * 6) / 12) * 12;
+    this.low = needed > this.octaves ? Math.max(12, Math.min(start, lowest)) : lowest;
     this.draw();
   }
+
+  /* Called when the window changes shape: the octave count depends on it. */
+  refit() { if (this.lesson) this.fit(this.lesson); }
 
   update(marks, palms, dim) { this.marks = marks || {}; this.palms = palms || {}; this.dim = dim || []; this.draw(); }
 

@@ -244,6 +244,7 @@ class App {
     $("bar-from").value = 1; $("bar-to").value = lesson.measures;
     this.syncing = false;
     this.lane.setLesson(lesson);
+    this.score.fitScale();
     this.keys.fit(lesson);
     this.buildPalms();
     this.renderAttempts();
@@ -330,25 +331,48 @@ class App {
     this.lane.draw();
   }
 
-  showPane(id) {
+  /* `open`: null keeps the sheet as it is (a phone starts with the stage in
+   * view), true pushes it up because there is something new to read. */
+  showPane(id, open = null) {
     for (const p of document.querySelectorAll(".pane")) p.hidden = p.id !== id;
     const pane = $(id);
     // The Learn panel is a feature switch; the others belong to their mode.
     if (id === "pane-learn" && !this.settings.get("view.lessonPanel")) pane.hidden = true;
     $("panel").hidden = pane.hidden;
-    // Under 900 px the panel slides over the stage, so it needs opening.
-    $("app").dataset.panel = pane.hidden ? "closed" : "open";
+    const app = $("app");
+    if (pane.hidden) { app.dataset.panel = "closed"; return; }
+    // Beside the stage it is simply there; over the stage it is a sheet.
+    if (!this.sheetPanel()) app.dataset.panel = "open";
+    else if (open) app.dataset.panel = "open";
+    else if (open === false) app.dataset.panel = "closed";
   }
 
   showSwitches() {
-    this.showPane("pane-switches");
+    this.showPane("pane-switches", true);
     for (const b of document.querySelectorAll(".rail-btn[data-mode]")) b.classList.remove("on");
     $("btn-switches").classList.add("on");
   }
 
   wireRail() {
-    for (const b of document.querySelectorAll(".rail-btn[data-mode]")) b.onclick = () => this.setMode(b.dataset.mode);
-    $("btn-switches").onclick = () => this.showSwitches();
+    for (const b of document.querySelectorAll(".rail-btn[data-mode]")) {
+      b.onclick = () => {
+        // Where the panel is a sheet, tapping the mode you are in puts it away.
+        if (b.dataset.mode === this.mode && this.sheetPanel()) this.togglePanel();
+        else this.setMode(b.dataset.mode);
+      };
+    }
+    $("btn-switches").onclick = () => {
+      if (!$("pane-switches").hidden && this.sheetPanel()) this.togglePanel();
+      else this.showSwitches();
+    };
+  }
+
+  /* True where the panel covers the stage instead of sitting beside it. */
+  sheetPanel() { return window.matchMedia("(max-width: 900px)").matches; }
+
+  togglePanel() {
+    const app = $("app");
+    app.dataset.panel = app.dataset.panel === "open" ? "closed" : "open";
   }
 
   /* ---------------------------------------------------------------- bar */
@@ -642,6 +666,7 @@ class App {
   showResult(r, attempt) {
     const box = $("result");
     box.hidden = false;
+    if (this.sheetPanel()) this.showPane("pane-practice", true);
     $("practice-hint").hidden = true;
     const stars = "★".repeat(r.stars) + "☆".repeat(5 - r.stars);
     const timing = r.hits ? `${r.perfect} on time · ${r.good} close · ${r.hits - r.perfect - r.good} off` : "no notes matched";
@@ -763,6 +788,7 @@ class App {
   /* Both scored passes are in: say what the pair means. */
   showRunResult() {
     const results = this.run ? this.run.results : [];
+    if (this.sheetPanel()) this.showPane("pane-practice", true);
     $("btn-run").hidden = false;
     $("btn-run-stop").hidden = true;
     $("btn-run").textContent = "Run it again";
@@ -1075,7 +1101,25 @@ class App {
     window.addEventListener("beforeunload", (e) => {
       if ($("script").value !== this.cleanText) { e.preventDefault(); e.returnValue = ""; }
     });
-    window.addEventListener("resize", () => this.lane.setMapper(this.score.mapper()));
+    this._wasSheet = this.sheetPanel();
+    const reshape = () => {
+      clearTimeout(this._reshapeTimer);
+      this._reshapeTimer = setTimeout(() => {
+        // Turning a phone, or narrowing a window, changes what the panel is:
+        // beside the stage it is simply there, over the stage it is a sheet
+        // and should start out of the way.
+        const sheet = this.sheetPanel();
+        if (sheet !== this._wasSheet) {
+          this._wasSheet = sheet;
+          $("app").dataset.panel = sheet ? "closed" : "open";
+        }
+        this.keys.refit();
+        if (this.score.fitScale()) this.score.relayout(true);
+        this.lane.setMapper(this.score.mapper());
+      }, 120);
+    };
+    window.addEventListener("resize", reshape);
+    window.addEventListener("orientationchange", reshape);
   }
 }
 

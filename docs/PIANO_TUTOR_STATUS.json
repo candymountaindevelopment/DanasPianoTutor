@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.6.2",
+    "version": "1.7.0",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -214,6 +214,12 @@
         "feature": "Practice runs: three passes over the same exercise — the tutor plays it, the student plays with the metronome, then with only a count-in — each pass preceded by a bar of clicks, passes 2 and 3 scored and compared, with tempo drift",
         "state": "done",
         "notes": "web/src/run.js (passes, buffer assembly, summary), Transport.prepareRun/playRun, ranking drift; verified on a rendered run: pass sections at -24 / -37.8 / -240 dB"
+      },
+      {
+        "area": "web",
+        "state": "done",
+        "feature": "Phone layouts: portrait puts the rail at the bottom and the panel in a sheet over the stage with the transport in its own row; landscape keeps an icon rail and squeezes the bands; keyboard octaves and staff size are chosen from the screen, 40 px touch targets, 100dvh, safe-area insets",
+        "notes": "styles.css media queries plus Keyboard.fit/refit and ScoreView.fitScale; verified at 390x844 and 844x390"
       }
     ],
     "examples": [
@@ -716,6 +722,19 @@
         "Ticking Listen muted the piano in every mode, including Learn where the point is to hear the piece. The mute now applies only in Practice, where the microphone is scored; the unpitched click is used whenever the microphone is open.",
         "Verified in the browser: Learn with Listen on renders at peak 0.74 with the piano; Practice at peak 0.67 with the click alone and zero frames read as a note; in a run every count-in peaks at 0.67 and pass 3's section is exactly silent.",
         "The test now asserts what matters: the practice click is within 3 dB of the ordinary one A-weighted, and never reaches the detector's clarity threshold."
+      ]
+    },
+    {
+      "date": "2026-09-23",
+      "version": "1.7.0",
+      "type": "feature",
+      "summary": "Phone layouts, portrait and landscape",
+      "changes": [
+        "Portrait (<=640 px): the rail becomes a bottom bar; the panel is a sheet over the stage, closed by default and raised when there is something to read; the transport takes its own row above the keyboard and scrolls sideways.",
+        "Landscape (<=520 px tall): icon-only rail, tighter bands, panel as a side sheet; the staff keeps about half the height.",
+        "The keyboard chooses its octave count so a white key stays at least ~26 px wide, centred on the music; the score chooses its staff size from the width (5 px per staff space on a phone against 8 on a desktop). Both recompute on resize and orientation change.",
+        "Touch: 40 px targets under (pointer: coarse), 100dvh so browser chrome cannot hide the keyboard, viewport-fit=cover and safe-area insets for notched phones.",
+        "Fixed a canvas bug this uncovered, which affected every HiDPI screen: the backing store's height attribute counts as a specified height and beat the inset:0 stretch, so canvases were laid out at devicePixelRatio size — twice as tall as their box on a phone. setupCanvas now writes the CSS size explicitly."
       ]
     }
   ]

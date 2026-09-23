@@ -212,6 +212,17 @@ export class ScoreView {
     this.relayout(true);
   }
 
+  /* Staff size for the screen: a phone needs a smaller staff space, or a
+   * system will not fit across the page and the music has to be scrolled
+   * sideways to be read. */
+  fitScale() {
+    const width = this.container.clientWidth || 800;
+    const wanted = width < 520 ? 5.0 : width < 700 ? 6.0 : width < 900 ? 7.0 : 8.0;
+    if (Math.abs(wanted - this.scale) < 0.25) return false;
+    this.scale = wanted;
+    return true;
+  }
+
   _maybeRelayout() {
     const w = this.container.clientWidth;
     if (w && Math.abs(w - this._lastWidth) > 2) this.relayout();
