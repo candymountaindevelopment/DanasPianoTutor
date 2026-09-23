@@ -179,7 +179,24 @@ label { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px
 .info .warn { color: var(--wrong); }
 .hand-R { color: var(--now); } .hand-L { color: var(--left-hand); }
 
+/* The three passes of a run: done, now, still to come. */
+.passes { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--hairline); }
+.passes li { display: flex; align-items: baseline; gap: 9px; padding: 7px 0;
+  border-bottom: 1px solid var(--hairline); color: var(--quiet); }
+.passes .n { font-family: var(--mono); font-size: 11px; width: 14px; }
+.passes .name { color: var(--ink); }
+.passes .say { font-size: 12px; }
+.passes .mark { margin-left: auto; font-family: var(--mono); font-size: 12px; }
+.passes li.done .mark { color: var(--now); }
+.passes li.now { color: var(--ink); }
+.passes li.now .name { color: var(--now); font-weight: 600; }
+.passes li.todo .name { color: var(--quiet); }
+
 .result { border-bottom: 1px solid var(--hairline); padding-bottom: 12px; }
+.compare { display: flex; gap: 22px; }
+.compare > div { flex: 1; }
+.compare .score { font-size: 34px; }
+.compare .cap { font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--quiet); }
 .result .big { display: flex; align-items: baseline; gap: 11px; }
 .result .score { font-family: var(--serif); font-size: 46px; line-height: 1; color: var(--now); }
 .result .stars { font-size: 15px; color: var(--now); letter-spacing: 3px; }

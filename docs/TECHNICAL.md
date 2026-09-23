@@ -816,7 +816,8 @@ web/
     ├── palette.js  the Ctrl+K command palette (§14.6.5)
     ├── settings.js feature switches, presets, URL overrides (§14.6.5)
     ├── listen.js   microphone -> YIN, stamped with lesson divisions (§14.7.2)
-    ├── ranking.js  score an attempt against the lesson (§14.7.3)
+    ├── ranking.js  score an attempt against the lesson (§14.7.4)
+    ├── run.js      practice runs: the three passes and their one buffer (§14.7.3)
     └── exports.js  downloads, WAV encoder, share links, storage, print
 ```
 
@@ -1031,7 +1032,38 @@ animation frame the app samples the analyser at the current division and feeds
 three confirming frames) — so heard notes carry the division they were played
 at. Because time is in divisions, tempo changes need no conversion.
 
-### 14.7.3 Ranking
+### 14.7.3 Practice runs
+
+A run (`web/src/run.js`) is the same exercise three times, with the support
+taken away one layer at a time:
+
+| pass | piano | metronome | scored |
+|---|---|---|---|
+| 1 Listen | plays | ticks | no |
+| 2 Play along | silent | ticks | yes |
+| 3 On your own | silent | **count-in only** | yes |
+
+Each pass is preceded by a bar of clicks, which makes the change of pass
+unmistakable and — because every pass is then exactly the same length — lets
+one buffer carry the whole run: `passAt(t, passSeconds)` says which pass a
+time falls in, and the offset inside it feeds the ordinary division mapping,
+so the cursor, the hands and the keys behave in every pass as they do in
+normal playback.
+
+The buffer costs two renders, not three (`Transport.prepareRun`): the full
+mix is pass 1, the metronome-only mix is pass 2, and pass 3 is that same mix
+with everything after the count-in zeroed — the student still gets the tempo,
+then silence. Measured on a rendered run at 100 bpm: pass 1 section -24 dB,
+pass 2 section -37.8 dB (the piano gone), pass 3 section -240 dB.
+
+Passes 2 and 3 are scored as separate attempts and compared at the end rather
+than reported one at a time, because the comparison is the point of the
+drill: pass 2 says whether the notes are known, pass 3 whether the rhythm is.
+`runSummary` turns the pair into a sentence, from "As good without the click
+as with it" to "The click was doing the counting." Without a microphone the
+run still plays as a guided drill, unscored.
+
+### 14.7.4 Ranking
 
 `ranking.rankAttempt(lesson, hands, events, range)` is pure:
 
@@ -1045,6 +1077,11 @@ at. Because time is in divisions, tempo changes need no conversion.
 - **Score** is `70 % accuracy + 30 % accuracy × timing - extras`, with a
   capped contribution for extras, mapped to 0–100 and five stars; the verdict
   adds the mean *signed* error as "you tend to play late" or "you rush".
+- **Drift** fits each note's timing error against the beat it fell on. A
+  steady player has a slope near zero whatever their offset; the slope becomes
+  a tempo difference in bpm, which is what pass 3 of a run is really testing
+  (a synthetic student speeding up by 4 % is reported as "tempo drifted
+  +4 bpm").
 - The result also carries per-bar hit counts (the bars to practise) and the
   misses, which `score.markResults` colours on the staff — red for not heard,
   amber for a different note. Attempts are kept per lesson in `localStorage`
@@ -1180,7 +1217,7 @@ Not built:
   C, fingering/dynamics in MusicXML.
 - Beams in the engraver: eighths and sixteenths get flags.
 - **Polyphonic** pitch detection: practice scoring hears one note at a time
-  (§14.7.3). MIDI input (Web MIDI) is the intended answer.
+  (§14.7.4). MIDI input (Web MIDI) is the intended answer.
 - Zero-crossing snapping in Sample Lab; clip fades/crop/automation on the
   timeline.
 - MIDI import/export.

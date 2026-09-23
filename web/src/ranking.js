@@ -11,7 +11,7 @@ import { noteName } from "./views.js";
 /* Timing tolerance around a target's onset, in beats. */
 export const PERFECT = 0.15, GOOD = 0.35, LIMIT = 0.75;
 
-export function rankAttempt(lesson, hands, events, range) {
+export function rankAttempt(lesson, hands, events, range, tempo) {
   const beat = lesson.beat_divisions, bar = lesson.measure_divisions;
   const [from, to] = range || [0, lesson.length];
   // Targets: groups of lesson notes by onset, restricted to the hands played.
@@ -63,9 +63,27 @@ export function rankAttempt(lesson, hands, events, range) {
   return {
     score, stars, targets: targets.length, hits: hits.length, perfect, good, extra,
     meanAbs, meanSigned, results, missed: results.filter((r) => !r.hit),
+    drift: measureDrift(results, beat, tempo || lesson.tempo),
     bars: Object.values(bars).sort((a, b) => a.bar - b.bar),
     verdict: verdict(score, accuracy, meanSigned, extra, targets.length),
   };
+}
+
+/* Tempo drift: fit each note's timing error against the beat it fell on.
+ * A steady player has a slope near zero whatever their offset; a slope of
+ * +0.02 means every beat arrives 2 % late, which is playing that much
+ * slower than the grid. Only meaningful once a few notes have landed. */
+function measureDrift(results, beat, tempo) {
+  const pts = results.filter((r) => r.hit).map((r) => [r.start / beat, r.error]);
+  if (pts.length < 4) return null;
+  const n = pts.length;
+  const mx = pts.reduce((s, p) => s + p[0], 0) / n, my = pts.reduce((s, p) => s + p[1], 0) / n;
+  let num = 0, den = 0;
+  for (const [x, y] of pts) { num += (x - mx) * (y - my); den += (x - mx) * (x - mx); }
+  if (den <= 0) return null;
+  const slope = num / den;
+  const bpm = tempo ? tempo / (1 + slope) - tempo : 0;
+  return { slope, bpm, steady: Math.abs(bpm) < 2 };
 }
 
 /* Which note was played instead, when one was heard near the target. */

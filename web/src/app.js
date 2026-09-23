@@ -16,6 +16,7 @@ import { Keyboard, Lane, Trace, Ribbon, COLORS } from "./views.js";
 import { handTimeline, handState, MIN_SPAN, MAX_SPAN } from "./palms.js";
 import { Listener } from "./listen.js";
 import { rankAttempt, midiLabel } from "./ranking.js";
+import { PASSES, runSummary, driftText } from "./run.js";
 import { Settings, FEATURES, PRESETS } from "./settings.js";
 import { Palette } from "./palette.js";
 import { eventsToScript } from "../listen/pitch.js";
@@ -73,6 +74,7 @@ class App {
     this.docName = "untitled";
     this.about = { name: "Danas Piano Tutor", version: "", engine: "", tagline: "" };
     this.attempt = null;
+    this.run = null;             // { results: [{pass, ranking}] } while a run is on
     this.earShown = 0;
     this.syncing = false;
     this.ready = false;
@@ -96,9 +98,12 @@ class App {
     this.transport.onPosition = (d) => this.positionChanged(d);
     this.transport.onState = (playing) => {
       $("btn-play").innerHTML = playing ? PAUSE_ICON : PLAY_ICON;
-      if (playing) this.beginAttempt(); else this.finishAttempt();
+      if (playing) { if (!this.transport.inRun) this.beginAttempt(); return; }
+      this.finishAttempt();
+      if (this.transport.endRun()) this.showRunResult();
     };
     this.transport.onPass = () => { this.finishAttempt(); this.beginAttempt(); };
+    this.transport.onRunPass = (i, passes) => this.runPassChanged(i, passes);
     this.transport.onMessage = (m) => this.status(m);
     this.score.onSeek = (d) => this.transport.seek(d);
     this.score.onMapper = (m) => this.lane.setMapper(m);
@@ -588,11 +593,11 @@ class App {
 
   /* ------------------------------------------------------- practice */
 
-  beginAttempt() {
+  beginAttempt(pass = null) {
     if (!$("listen").checked || !this.listener.active || !this.lesson || this.mode === "ear") return;
     this.listener.beginAttempt();
     this.attempt = { hands: this.transport.options.hands, tempo: this.transport.options.tempo,
-      range: this.transport.sectionRange(), started: Date.now() };
+      range: this.transport.sectionRange(), started: Date.now(), pass };
     this.score.markResults(null);
   }
 
@@ -609,13 +614,20 @@ class App {
     this.attempt = null;
     const events = this.listener.endAttempt(this.transport.position);
     const hands = HANDS_FOR[attempt.hands] || ["R", "L"];
-    const ranking = rankAttempt(this.lesson, hands, events, attempt.range);
+    const ranking = rankAttempt(this.lesson, hands, events, attempt.range, attempt.tempo);
     if (!ranking.targets) return;
     const played = ranking.results.filter((r) => r.start < this.transport.position || r.hit).length;
     if (!played && Date.now() - attempt.started < 3000) return;
+    this.saveAttempt(ranking, attempt);
+    // Inside a run the passes are compared at the end, not one at a time.
+    if (this.run && attempt.pass) {
+      this.run.results.push({ pass: attempt.pass, ranking });
+      this.showPasses(this.transport.run ? this.transport.run.index : PASSES.length);
+      if (attempt.pass === "alone") this.score.markResults(ranking);
+      return;
+    }
     this.showResult(ranking, attempt);
     this.score.markResults(ranking);
-    this.saveAttempt(ranking, attempt);
     if (this.mode !== "practice") this.setMode("practice");
   }
 
@@ -648,7 +660,7 @@ class App {
     const all = this.loadAttempts();
     const list = all[this.lesson.name] || [];
     list.unshift({ when: new Date().toISOString(), hands: attempt.hands, tempo: Math.round(attempt.tempo),
-      score: r.score, stars: r.stars, hits: r.hits, targets: r.targets });
+      score: r.score, stars: r.stars, hits: r.hits, targets: r.targets, pass: attempt.pass || null });
     all[this.lesson.name] = list.slice(0, 50);
     try { localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(all)); } catch (_) { /* ignore */ }
     this.renderAttempts();
@@ -667,7 +679,7 @@ class App {
       const cells = [
         when.toLocaleDateString(undefined, { day: "numeric", month: "short" }) + " " +
           when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        { both: "both", right: "R", left: "L" }[a.hands] || a.hands,
+        a.pass ? { along: "with click", alone: "on own" }[a.pass] : ({ both: "both", right: "R", left: "L" }[a.hands] || a.hands),
         a.tempo + " bpm", String(a.score), "★".repeat(a.stars),
       ];
       for (const c of cells) { const td = document.createElement("td"); td.textContent = c; tr.appendChild(td); }
@@ -677,7 +689,101 @@ class App {
 
   /* ------------------------------------------------------------ panels */
 
+  /* ------------------------------------------------------ practice run */
+
+  /* Three passes over the same exercise: hear it, play it with the click,
+   * play it with nothing. Passes 2 and 3 are scored and compared. */
+  async startRun() {
+    if (!this.lesson || this.transport.inRun) return;
+    this.setMode("practice");
+    this.transport.stop();
+    $("result").hidden = true;
+    $("practice-hint").hidden = true;
+    this.run = { results: [] };
+    this.showPasses(-1);
+    $("btn-run").disabled = true;
+    this.status("Preparing the run…", 0);
+    try {
+      const prepared = await this.transport.prepareRun();
+      if (!prepared) throw new Error("nothing to play");
+    } catch (e) {
+      this.run = null;
+      $("btn-run").disabled = false;
+      $("passes").hidden = true;
+      this.status("Could not prepare the run: " + e.message, 0);
+      return;
+    }
+    $("btn-run").disabled = false;
+    $("btn-run").hidden = true;
+    $("btn-run-stop").hidden = false;
+    this.status($("listen").checked ? "Run started — pass 1 of 3."
+      : "Run started. Tick Listen to have the played passes scored.", 8000);
+    this.transport.playRun();
+  }
+
+  stopRun() {
+    if (!this.run) return;
+    this.transport.stop();          // onState(false) finishes and tidies up
+  }
+
+  runPassChanged(index, passes) {
+    this.finishAttempt();           // close the pass that just ended
+    const pass = passes[index];
+    this.showPasses(index);
+    // The piano is silent from pass 2 on; the click goes with pass 3.
+    this.status(`Pass ${index + 1} of 3 · ${pass.label} — ${pass.hint}`, 0);
+    if (pass.scored) this.beginAttempt(pass.id);
+  }
+
+  showPasses(current) {
+    const list = $("passes");
+    list.hidden = false;
+    list.replaceChildren();
+    PASSES.forEach((p, i) => {
+      const li = document.createElement("li");
+      li.className = i < current ? "done" : i === current ? "now" : "todo";
+      const n = document.createElement("span"); n.className = "n"; n.textContent = String(i + 1);
+      const name = document.createElement("span"); name.className = "name"; name.textContent = p.label;
+      const say = document.createElement("span"); say.className = "say"; say.textContent = p.hint;
+      li.append(n, name, say);
+      const done = (this.run && this.run.results.find((r) => r.pass === p.id)) || null;
+      if (done) { const m = document.createElement("span"); m.className = "mark"; m.textContent = String(done.ranking.score); li.appendChild(m); }
+      list.appendChild(li);
+    });
+  }
+
+  /* Both scored passes are in: say what the pair means. */
+  showRunResult() {
+    const results = this.run ? this.run.results : [];
+    $("btn-run").hidden = false;
+    $("btn-run-stop").hidden = true;
+    $("btn-run").textContent = "Run it again";
+    const along = results.find((r) => r.pass === "along");
+    const alone = results.find((r) => r.pass === "alone");
+    this.showPasses(PASSES.length);
+    if (!along && !alone) {
+      this.status($("listen").checked ? "Run finished." : "Run finished — tick Listen to be scored next time.", 8000);
+      this.run = null;
+      return;
+    }
+    const card = (r, cap) => {
+      if (!r) return `<div><div class="cap">${cap}</div><div class="quiet">not scored</div></div>`;
+      const k = r.ranking;
+      return `<div><div class="cap">${cap}</div><div class="score">${k.score}</div>` +
+        `<div class="quiet">${k.hits} of ${k.targets} · ${driftText(k.drift) || "—"}</div></div>`;
+    };
+    $("result").hidden = false;
+    $("practice-hint").hidden = true;
+    $("result").innerHTML =
+      `<div class="compare">${card(along, "with the click")}${card(alone, "on your own")}</div>` +
+      `<div class="verdict">${runSummary(results)}</div>`;
+    this.status("Run finished.", 8000);
+    this.run = null;
+  }
+
   wirePanels() {
+    $("btn-run").onclick = () => this.startRun();
+    $("btn-run-stop").onclick = () => this.stopRun();
     $("btn-ear-clear").onclick = () => {
       this.listener.events = []; this.earShown = 0;
       $("ear-log").tBodies[0].replaceChildren();
@@ -828,6 +934,8 @@ class App {
     const commands = [
       { where: "Mode", label: "Learn", keys: "1", run: () => this.setMode("learn") },
       { where: "Mode", label: "Practice — score what I play", feature: "play.listen", keys: "2", run: () => this.setMode("practice") },
+      { where: "Practice", label: "Start a practice run (listen, play along, on your own)", feature: "play.listen",
+        run: () => this.startRun() },
       { where: "Mode", label: "Ear — free listening", feature: "tools.ear", keys: "3", run: () => this.setMode("ear") },
       { where: "Lesson", label: "Edit the script", feature: "tools.script", keys: "Ctrl+E", run: () => this.showScript(true) },
       { where: "File", label: "Open a lesson file…", feature: "tools.files", run: () => $("file-input").click() },

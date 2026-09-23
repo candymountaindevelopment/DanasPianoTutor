@@ -3,7 +3,7 @@
     "title": "Danas Piano Tutor — technical status",
     "format": "raw.status",
     "version": 1,
-    "updated": "2026-09-22",
+    "updated": "2026-09-23",
     "maintainer_note": "Hand-maintained. Update 'status' when features change and append to 'changelog' for every change; the repository has no git history, so this file is the record.",
     "related": [
       "docs/TECHNICAL.md#14.5",
@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.5.1",
+    "version": "1.6.0",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -208,6 +208,12 @@
         "feature": "One-screen redesign: 52 px bar + 52 px rail + stage + 392 px panel; Learn / Practice / Ear modes; floating transport of seven live controls; Ctrl+K command palette for everything set once; Ctrl+E script overlay; engraved title as lesson switcher; tuner ribbon; note tape on the staff's x-axis; hand diagram retired (the hands are on the keys)",
         "state": "done",
         "notes": "design/ holds the artboards; web/{index.html,styles.css,src/{app,views,palette,score}.js}; Instrument Serif/Sans + JetBrains Mono self-hosted by build_web --vendor"
+      },
+      {
+        "area": "web",
+        "feature": "Practice runs: three passes over the same exercise — the tutor plays it, the student plays with the metronome, then with only a count-in — each pass preceded by a bar of clicks, passes 2 and 3 scored and compared, with tempo drift",
+        "state": "done",
+        "notes": "web/src/run.js (passes, buffer assembly, summary), Transport.prepareRun/playRun, ranking drift; verified on a rendered run: pass sections at -24 / -37.8 / -240 dB"
       }
     ],
     "examples": [
@@ -445,6 +451,10 @@
       {
         "path": "web/src/palette.js",
         "role": "Ctrl+K command palette, gated by the feature switches"
+      },
+      {
+        "path": "web/src/run.js",
+        "role": "Practice run: the three passes, their one buffer, and the comparison"
       }
     ],
     "changes_to_existing_raw_code": [
@@ -471,7 +481,7 @@
     ],
     "tests": {
       "command": "python -m unittest discover -s tests",
-      "total": 439,
+      "total": 442,
       "tutor_file": "tests/test_teach.py",
       "tutor_cases": 29,
       "covers": [
@@ -669,6 +679,20 @@
         "listen/pitch.js: reject a window that is near-silent where YIN looks but loud at its end (a click's attack), which used to read as a confident note — the frames before each click reported an ascending scale.",
         "Measured with the real detector over a rendered metronome track: 23 frames read as a pitch with the ordinary click, 0 with the practice click; rendered C3/C4/C5 still detected in every frame.",
         "Tests: TestPracticeMetronome (3 cases, YIN clarity measured in numpy); suite 442."
+      ]
+    },
+    {
+      "date": "2026-09-23",
+      "version": "1.6.0",
+      "type": "feature",
+      "summary": "Practice runs: listen, play along, on your own",
+      "changes": [
+        "web/src/run.js: the three passes, passAt() for locating a time in the run, buildRunSamples() for assembling one buffer, and the end-of-run summary.",
+        "Transport.prepareRun() renders the full mix and the metronome-only mix and builds a three-pass buffer (pass 3 = the metronome mix with everything after the count-in zeroed); playRun() plays it and reports each pass through onRunPass.",
+        "Every pass gets a bar of count-in clicks, so the change of pass is unmistakable and all three passes are the same length.",
+        "Passes 2 and 3 are scored as separate attempts and compared at the end: score, notes, tempo drift, and a sentence on what the pair means.",
+        "ranking.js: tempo drift by fitting the timing error against the beat it fell on, reported in bpm.",
+        "Practice panel: Run button, a live three-pass banner with scores, the comparison card; also in the Ctrl+K palette. Without a microphone the run still plays as a guided drill, unscored."
       ]
     }
   ]

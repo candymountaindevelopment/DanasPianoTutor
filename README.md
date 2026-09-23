@@ -99,8 +99,10 @@ python tools/build_web.py --dist       # clean, servable tree in dist/ (for Cadd
 ```
 
 It is **one screen with three modes** (`design/`): *Learn* to read and play
-along, *Practice* to be scored through the microphone, *Ear* for free
-listening. The staff and the keyboard never move between them — the rail on
+along, *Practice* to be scored through the microphone — including a
+**practice run**, which plays the exercise once, then has you play it with
+the metronome, then again with nothing but a count-in, and compares the two —
+and *Ear* for free listening. The staff and the keyboard never move between them — the rail on
 the left switches mode, the tuner ribbon slides in under the staff, and the
 right panel changes. The hands are drawn on the keys they hold, the engraved
 title is the lesson switcher, and everything that is set once rather than

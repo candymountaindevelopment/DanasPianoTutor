@@ -3,6 +3,8 @@
  * stages, like the desktop app: count-in + first pass once, then the section
  * alone with loop=true, so the count-in is heard exactly once. */
 
+import { PASSES, passAt, buildRunSamples } from "./run.js";
+
 export class Transport {
   constructor(bridge) {
     this.bridge = bridge;
@@ -13,6 +15,8 @@ export class Transport {
                      voice_db: -12, metronome_unpitched: false };
     this.onPass = null;          // called with the pass number each time a loop wraps
     this.pass = 0;
+    this.run = null;             // a practice run in progress (see run.js)
+    this.onRunPass = null;       // called with the pass index as the run moves on
     this.loop = false;
     this.rendered = null;          // {samples, sampleRate, frames, count_in_seconds, ...}
     this.buffer = null;            // AudioBuffer: count-in + section
@@ -135,6 +139,61 @@ export class Transport {
     this._tick();
   }
 
+  /* ------------------------------------------------------------- run */
+
+  /* Render the three passes into one buffer. Returns the run, or null when
+   * there is nothing to play. The caller may show progress while it works. */
+  async prepareRun() {
+    if (this.index === null || !this.lesson) return null;
+    const ctx = this.ensureContext();
+    const countIn = Math.max(1, this.options.count_in_bars || 0);
+    const base = { ...this.options, count_in_bars: countIn, loop_bars: this.options.loop_bars };
+    const full = await this.bridge.render(this.index, { ...base, voice_db: -12 });
+    const clicks = await this.bridge.render(this.index, { ...base, voice_db: -100 });
+    const rate = full.sample_rate;
+    const countInFrames = Math.round(full.count_in_seconds * rate);
+    const { samples, passFrames } = buildRunSamples(full.samples, clicks.samples, countInFrames);
+    const buffer = ctx.createBuffer(1, samples.length, rate);
+    buffer.copyToChannel(samples, 0);
+    this.run = {
+      buffer, rate, passFrames,
+      passSeconds: passFrames / rate,
+      countInSeconds: full.count_in_seconds,
+      secondsPerDivision: full.seconds_per_division,
+      startDivision: full.start_division,
+      endDivision: full.end_division,
+      index: -1,
+      passes: PASSES,
+    };
+    this.rendered = full;          // the position mapping belongs to one pass
+    return this.run;
+  }
+
+  /* Play a prepared run from its first pass. */
+  playRun() {
+    if (!this.run) return;
+    this._stopSource();
+    this.loopBeforeRun = this.loop;
+    this.loop = false;
+    this.phase = "run";
+    this.run.index = -1;
+    this.offset = 0;
+    this._startSource(this.run.buffer, false, 0);
+    this.playing = true;
+    if (this.onState) this.onState(true);
+    this._tick();
+  }
+
+  get inRun() { return !!this.run && this.phase === "run"; }
+
+  endRun() {
+    const had = !!this.run;
+    this.run = null;
+    if (this.loopBeforeRun !== undefined) { this.loop = this.loopBeforeRun; this.loopBeforeRun = undefined; }
+    if (this.phase === "run") this.phase = "first";
+    return had;
+  }
+
   stop() {
     if (!this.playing) return;
     this._stopSource();
@@ -191,6 +250,17 @@ export class Transport {
     if (!this.playing || !this.rendered) return;
     const elapsed = this.ctx.currentTime - this.startedAt;
     let pos;
+    if (this.phase === "run") {
+      const run = this.run;
+      const t = this.offset + elapsed;
+      if (t >= run.passSeconds * run.passes.length) { this.stop(); return; }
+      const { index, offset } = passAt(t, run.passSeconds);
+      if (index !== run.index) { run.index = index; if (this.onRunPass) this.onRunPass(index, run.passes); }
+      this.position = this.divisionAt(offset);
+      this.emitPosition();
+      this._raf = requestAnimationFrame(() => this._tick());
+      return;
+    }
     if (this.phase === "first") {
       pos = this.offset + elapsed;
       if (pos >= this.buffer.duration) {
