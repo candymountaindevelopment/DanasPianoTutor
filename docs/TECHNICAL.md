@@ -1053,8 +1053,18 @@ normal playback.
 The buffer costs two renders, not three (`Transport.prepareRun`): the full
 mix is pass 1, the metronome-only mix is pass 2, and pass 3 is that same mix
 with everything after the count-in zeroed — the student still gets the tempo,
-then silence. Measured on a rendered run at 100 bpm: pass 1 section -24 dB,
-pass 2 section -37.8 dB (the piano gone), pass 3 section -240 dB.
+then silence.
+
+A pass is the count-in plus the section, which is a whole number of beats;
+a *render* is longer than that, because it ends with a tail of silence so the
+last note's release can finish. Laying the renders end to end therefore put
+that tail between the passes and the beat stopped for a third of a second
+every time the pass changed. The renders are instead **mixed in** at their
+pass positions, so a release rings on over the next pass's count-in and the
+click grid is never interrupted. Measured on a rendered run at 100 bpm: 9.6 s
+per pass, exactly 16 beats, no click more than 0.2 ms from its beat across
+the pass boundary; section levels -24 dB (piano and click), -37.6 dB (click
+alone) and -240 dB (silence).
 
 Passes 2 and 3 are scored as separate attempts and compared at the end rather
 than reported one at a time, because the comparison is the point of the

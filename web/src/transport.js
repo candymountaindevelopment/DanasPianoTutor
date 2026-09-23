@@ -152,7 +152,12 @@ export class Transport {
     const clicks = await this.bridge.render(this.index, { ...base, voice_db: -100 });
     const rate = full.sample_rate;
     const countInFrames = Math.round(full.count_in_seconds * rate);
-    const { samples, passFrames } = buildRunSamples(full.samples, clicks.samples, countInFrames);
+    // A pass is the count-in plus the section: a whole number of beats. What
+    // the render has beyond that is the release tail, which belongs to the
+    // next pass's count-in, not between the passes.
+    const sectionSeconds = (full.end_division - full.start_division) * full.seconds_per_division;
+    const passFrames = Math.round((full.count_in_seconds + sectionSeconds) * rate);
+    const { samples } = buildRunSamples(full.samples, clicks.samples, countInFrames, passFrames);
     const buffer = ctx.createBuffer(1, samples.length, rate);
     buffer.copyToChannel(samples, 0);
     this.run = {

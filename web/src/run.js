@@ -33,16 +33,25 @@ export function passAt(seconds, passSeconds) {
  *   clicks metronome only           → pass 2, and pass 3 once the section
  *                                     after the count-in is silenced.
  * The count-in of pass 3 is kept: the student needs the tempo before the
- * click goes away. */
-export function buildRunSamples(full, clicks, countInFrames) {
-  const frames = Math.min(full.length, clicks.length);
-  const out = new Float32Array(frames * PASSES.length);
-  out.set(full.subarray(0, frames), 0);
-  out.set(clicks.subarray(0, frames), frames);
-  const alone = clicks.slice(0, frames);
-  alone.fill(0, Math.min(countInFrames, frames));
-  out.set(alone, frames * 2);
-  return { samples: out, passFrames: frames };
+ * click goes away.
+ *
+ * `passFrames` is the count-in plus the section — a whole number of beats.
+ * A render is longer than that: it ends with a tail of silence so the last
+ * note's release can finish. The renders are therefore *mixed in* at their
+ * pass positions rather than laid end to end, so a release rings on over
+ * the next pass's count-in and the beat never stops. */
+export function buildRunSamples(full, clicks, countInFrames, passFrames) {
+  const alone = clicks.slice();
+  alone.fill(0, Math.min(countInFrames, alone.length));
+  const sources = [full, clicks, alone];
+  const tail = Math.max(0, Math.max(full.length, clicks.length) - passFrames);
+  const out = new Float32Array(passFrames * PASSES.length + tail);
+  sources.forEach((src, pass) => {
+    const at = pass * passFrames;
+    const n = Math.min(src.length, out.length - at);
+    for (let i = 0; i < n; i++) out[at + i] += src[i];
+  });
+  return { samples: out, passFrames };
 }
 
 /* The run's own summary: what each scored pass said, and what the pair says

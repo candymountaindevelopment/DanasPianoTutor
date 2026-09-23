@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.6.0",
+    "version": "1.6.1",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -693,6 +693,17 @@
         "Passes 2 and 3 are scored as separate attempts and compared at the end: score, notes, tempo drift, and a sentence on what the pair means.",
         "ranking.js: tempo drift by fitting the timing error against the beat it fell on, reported in bpm.",
         "Practice panel: Run button, a live three-pass banner with scores, the comparison card; also in the Ctrl+K palette. Without a microphone the run still plays as a guided drill, unscored."
+      ]
+    },
+    {
+      "date": "2026-09-23",
+      "version": "1.6.1",
+      "type": "fix",
+      "summary": "The metronome no longer stops between the passes of a run",
+      "changes": [
+        "Each render ends with a tail of silence for the last note's release; laying the three renders end to end put that tail between the passes, so the beat stopped for 0.35 s at every change of pass (a pass measured 16.583 beats instead of 16).",
+        "A pass is now exactly its count-in plus its section, and the renders are mixed in at their pass positions, so a release rings on over the next pass's count-in instead of delaying it.",
+        "Measured: 9.6 s per pass at 100 bpm, exactly 16 beats, no click more than 0.2 ms from its beat across the boundary."
       ]
     }
   ]
