@@ -557,8 +557,33 @@ class App {
    * microphone is open, so it can never be read as a played note. */
   applyListening() {
     const on = $("listen").checked && this.listener.active;
-    const mute = on && this.mode === "practice";
+    const mute = on && this.mode === "practice" && !$("piano-too").checked;
     this.transport.updateOptions({ voice_db: mute ? -100 : -12, metronome_unpitched: on });
+    // Muting the piano is the point of Practice, but silence needs saying.
+    if (mute) {
+      this.status($("btn-metro").classList.contains("on")
+        ? "Practice: the piano is muted so the microphone hears only you — the metronome keeps the beat."
+        : "Practice: the piano is muted so the microphone hears only you, and the metronome is off — "
+          + "there is nothing to hear. Turn the metronome on, or tick \u201cPlay the piano too\u201d.", 9000);
+    }
+  }
+
+  /* "Is the app making any sound?" — the answer separates a problem in the
+   * app from one in the system, which no amount of staring at the code can. */
+  async soundCheck() {
+    this.status("Sound check: playing a tone…", 0);
+    try {
+      const r = await this.transport.soundCheck();
+      if (r.peak > -60) {
+        this.status(`The app is sending sound to the speakers (peak ${r.peak.toFixed(0)} dB, `
+          + `${Math.round(r.sampleRate)} Hz). If you hear nothing, check the system volume and output device — `
+          + `Windows also quietens other sounds while a microphone is open: Sound settings → Communications → Do nothing.`, 0);
+      } else {
+        this.status(`The app produced no output (context ${r.state}). That is a fault in the app, not the system.`, 0);
+      }
+    } catch (e) {
+      this.status("Sound check failed: " + e.message, 0);
+    }
   }
 
   showHeard(reading) {
@@ -816,6 +841,14 @@ class App {
   }
 
   wirePanels() {
+    try { $("piano-too").checked = localStorage.getItem("dpt.pianoWhileListening") === "1"; } catch (_) { /* ignore */ }
+    $("piano-too").onchange = () => {
+      try { localStorage.setItem("dpt.pianoWhileListening", $("piano-too").checked ? "1" : "0"); } catch (_) { /* ignore */ }
+      this.applyListening();
+      if ($("piano-too").checked) {
+        this.status("The microphone will hear the piano as well as you — use headphones, or the score will flatter you.", 9000);
+      }
+    };
     $("btn-run").onclick = () => this.startRun();
     $("btn-run-stop").onclick = () => this.stopRun();
     $("btn-ear-clear").onclick = () => {
@@ -1030,6 +1063,7 @@ class App {
         $("tempo-bpm").onchange();
       } },
       { where: "App", label: "Set up — feature switches", feature: "app.settings", run: () => this.showSwitches() },
+      { where: "App", label: "Sound check — is the app making any sound?", run: () => this.soundCheck() },
       { where: "App", label: "Writing lessons — reference", feature: "tools.help", keys: "F1", run: () => this.showHelp() },
       { where: "App", label: "About Danas Tutor", run: () => {
         const s = $("splash"); s.hidden = false; s.classList.add("ready");

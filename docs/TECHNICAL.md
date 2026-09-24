@@ -1045,6 +1045,23 @@ Ticking **Listen** in the top bar opens the microphone on the *transport's*
 -100) **in Practice only**, where the microphone is being scored; in Learn
 the point is to hear the piece, so it keeps playing.
 
+That mute is the single most confusing thing the app does — ticking a box
+and losing nine tenths of the sound reads as a fault, not a feature. So it
+announces itself in the status line, and *Play the piano too* in the Practice
+panel turns it off for anyone on headphones, with the warning that the
+microphone will otherwise hear the piano and flatter the score. Measured
+over eight seconds of playback, the output carries sound in 87 of 151 frames
+with the piano on against 12 with it muted (the metronome clicks).
+
+Two other things guard the output. The context watches its own state: opening
+a microphone can make the browser change output device, which interrupts the
+context, and without resuming it playback would stop for good. And
+`Transport.soundCheck()` — *Sound check* in the palette — plays a tone
+through the normal output and reports the level the meter on that output
+actually saw, which separates "the app is silent" from "the system is
+silent"; the latter is usually Windows quietening other sounds while a
+microphone is open (Sound settings → Communications).
+
 The metronome also changes voice. The ordinary click is a short sine
 (1500 Hz, 2200 Hz accented), which is the worst possible sound to play at a
 pitch detector: it is perfectly periodic, and measured through the real

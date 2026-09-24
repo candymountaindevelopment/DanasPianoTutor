@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.7.0",
+    "version": "1.7.1",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -735,6 +735,18 @@
         "The keyboard chooses its octave count so a white key stays at least ~26 px wide, centred on the music; the score chooses its staff size from the width (5 px per staff space on a phone against 8 on a desktop). Both recompute on resize and orientation change.",
         "Touch: 40 px targets under (pointer: coarse), 100dvh so browser chrome cannot hide the keyboard, viewport-fit=cover and safe-area insets for notched phones.",
         "Fixed a canvas bug this uncovered, which affected every HiDPI screen: the backing store's height attribute counts as a specified height and beat the inset:0 stretch, so canvases were laid out at devicePixelRatio size — twice as tall as their box on a phone. setupCanvas now writes the CSS size explicitly."
+      ]
+    },
+    {
+      "date": "2026-09-24",
+      "version": "1.7.1",
+      "type": "fix",
+      "summary": "Say why Practice goes quiet, and let the piano back in",
+      "changes": [
+        "Muting the piano while the microphone is scored is deliberate, but it reads as a fault: measured over 8 s of playback, Practice with Listen on carries sound in 12 of 149 frames (the clicks) against 94 in Learn. It now says so in the status line.",
+        "Practice panel: 'Play the piano too' for anyone on headphones — 87 of 151 frames with it on — warning that the microphone will otherwise hear the piano and flatter the score. Remembered in the browser.",
+        "The AudioContext watches its own state and resumes itself: opening a microphone can make the browser change output device, which interrupts the context and would otherwise stop playback for good.",
+        "New 'Sound check' command: plays a tone through the normal output and reports the level a meter on that output saw, separating a silent app from a silent system (Windows quietens other sounds while a microphone is open)."
       ]
     }
   ]

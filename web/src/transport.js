@@ -42,10 +42,58 @@ export class Transport {
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.gain = this.ctx.createGain();
-      this.gain.connect(this.ctx.destination);
+      // Everything the app plays passes the meter, so it can say what it is
+      // actually sending to the speakers (see outputLevelDb).
+      this.meter = this.ctx.createAnalyser();
+      this.meter.fftSize = 2048;
+      this.gain.connect(this.meter);
+      this.meter.connect(this.ctx.destination);
+      // Opening a microphone can make the browser switch output device, and
+      // that interrupts the context: without this, playback stops for good.
+      this.ctx.onstatechange = () => {
+        if (this.ctx.state === "running" || !this.playing) return;
+        this.ctx.resume().then(() => {
+          if (this.onMessage) this.onMessage("Audio was interrupted — resumed.");
+        }).catch(() => {
+          if (this.onMessage) this.onMessage("Audio was interrupted by the system; press play again.");
+        });
+      };
     }
-    if (this.ctx.state === "suspended") this.ctx.resume();
+    if (this.ctx.state !== "running") this.ctx.resume();
     return this.ctx;
+  }
+
+  /* The level of what is leaving for the speakers, in dBFS. -Infinity when
+   * nothing is playing at all. */
+  outputLevelDb() {
+    if (!this.meter) return -Infinity;
+    const buf = new Float32Array(this.meter.fftSize);
+    this.meter.getFloatTimeDomainData(buf);
+    let sum = 0;
+    for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+    return 20 * Math.log10(Math.sqrt(sum / buf.length) + 1e-12);
+  }
+
+  /* Play a short tone through the normal output and report the loudest
+   * level the meter saw. Answers "is the app making any sound?" without
+   * needing a lesson, a microphone or a render. */
+  async soundCheck(seconds = 0.8) {
+    const ctx = this.ensureContext();
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 440;
+    gain.gain.value = 0.25;
+    osc.connect(gain);
+    gain.connect(this.gain);
+    osc.start();
+    let peak = -Infinity;
+    const until = performance.now() + seconds * 1000;
+    while (performance.now() < until) {
+      peak = Math.max(peak, this.outputLevelDb());
+      await new Promise((r) => setTimeout(r, 40));
+    }
+    try { osc.stop(); osc.disconnect(); gain.disconnect(); } catch (_) { /* already gone */ }
+    return { peak, state: ctx.state, sampleRate: ctx.sampleRate, baseLatency: ctx.baseLatency };
   }
 
   setLesson(index, lesson) {
