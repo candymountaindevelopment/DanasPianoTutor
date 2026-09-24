@@ -348,6 +348,7 @@ class App {
   }
 
   showSwitches() {
+    this.refreshOutputs();
     this.showPane("pane-switches", true);
     for (const b of document.querySelectorAll(".rail-btn[data-mode]")) b.classList.remove("on");
     $("btn-switches").classList.add("on");
@@ -933,9 +934,17 @@ class App {
       sel.appendChild(new Option(d.label, d.id));
     }
     sel.value = chosen && Array.from(sel.options).some((o) => o.value === chosen) ? chosen : "default";
-    sel.disabled = typeof AudioContext !== "undefined"
-      && typeof AudioContext.prototype.setSinkId !== "function";
-    if (sel.disabled) sel.title = "This browser cannot choose the output device.";
+    if (sel.options.length === 1) {
+      // The browser only names the outputs once the microphone has been
+      // allowed once; until then there is nothing to choose between.
+      const hint = new Option("— tick Listen once to see the devices —", "default");
+      hint.disabled = true;
+      sel.appendChild(hint);
+    }
+    if (typeof AudioContext !== "undefined" && typeof AudioContext.prototype.setSinkId !== "function") {
+      sel.disabled = true;
+      sel.title = "This browser cannot choose the output device.";
+    }
   }
 
   wireOutput() {
