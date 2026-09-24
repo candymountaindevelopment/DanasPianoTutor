@@ -532,8 +532,18 @@ class App {
     const on = $("listen").checked;
     if (on) {
       try {
+        const before = await this.transport.defaultOutput();
         await this.listener.start(this.transport.ensureContext());
-        this.status("Listening. Press play and play along with the metronome.", 8000);
+        const after = await this.transport.defaultOutput();
+        await this.refreshOutputs();
+        if (before && after && before !== after) {
+          // This is the usual reason a page goes silent when a microphone
+          // opens: the system moved playback somewhere else.
+          this.status(`The system moved playback from "${before}" to "${after}" when the microphone opened. `
+            + `Pick your speakers under Sound out in Set up.`, 0);
+        } else {
+          this.status("Listening. Press play and play along with the metronome.", 8000);
+        }
       } catch (e) {
         $("listen").checked = false;
         this.status(e.name === "NotAllowedError"
@@ -911,6 +921,46 @@ class App {
 
   /* -------------------------------------------------------- switches */
 
+  /* The output picker in Set up, and the tone test beside it. */
+  async refreshOutputs() {
+    const sel = $("output");
+    let list = [];
+    try { list = await this.transport.outputs(); } catch (_) { /* ignore */ }
+    const chosen = sel.value;
+    sel.replaceChildren(new Option("system default", "default"));
+    for (const d of list) {
+      if (d.id === "default" || !d.id) continue;
+      sel.appendChild(new Option(d.label, d.id));
+    }
+    sel.value = chosen && Array.from(sel.options).some((o) => o.value === chosen) ? chosen : "default";
+    sel.disabled = typeof AudioContext !== "undefined"
+      && typeof AudioContext.prototype.setSinkId !== "function";
+    if (sel.disabled) sel.title = "This browser cannot choose the output device.";
+  }
+
+  wireOutput() {
+    $("output").onchange = async () => {
+      try {
+        await this.transport.setOutput($("output").value);
+        try { localStorage.setItem("dpt.output", $("output").value); } catch (_) { /* ignore */ }
+        const name = $("output").selectedOptions[0].textContent;
+        this.status(`Playing into "${name}".`, 6000);
+      } catch (e) {
+        this.status("Could not change the output: " + e.message, 0);
+      }
+    };
+    $("btn-sound-check").onclick = () => this.soundCheck();
+    this.refreshOutputs().then(() => {
+      try {
+        const saved = localStorage.getItem("dpt.output");
+        if (saved && saved !== "default") { $("output").value = saved; $("output").onchange(); }
+      } catch (_) { /* ignore */ }
+    });
+    if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+      navigator.mediaDevices.addEventListener("devicechange", () => this.refreshOutputs());
+    }
+  }
+
   wireSwitches() {
     const list = $("feature-list");
     const groups = {};
@@ -956,6 +1006,7 @@ class App {
       this.refreshKeys();
     };
     this.settings.onChange(() => this.applySettings());
+    this.wireOutput();
   }
 
   applySettings() {

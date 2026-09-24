@@ -152,6 +152,11 @@
           <label title="How many white keys a hand comfortably covers. Blank = the lesson's own span.">Hand span
             <input id="span" type="number" min="5" max="8" step="1" class="bar mono" placeholder="lesson"></label>
         </div>
+        <div class="row">
+          <label title="Where the tutor plays. Opening a microphone can move this to a headset or a virtual device.">Sound out
+            <select id="output"><option value="default">system default</option></select></label>
+          <button id="btn-sound-check" title="Play a tone and measure what leaves for the speakers">Test</button>
+        </div>
         <div class="scroll" id="feature-list"></div>
       </section>
     </aside>

@@ -63,6 +63,32 @@ export class Transport {
     return this.ctx;
   }
 
+  /* Which device the page is playing into, and how to change it. Chrome
+   * moves playback to the "communications" device when a microphone opens,
+   * which is a common way for a page to become inaudible. */
+  async outputs() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return [];
+    const all = await navigator.mediaDevices.enumerateDevices();
+    return all.filter((d) => d.kind === "audiooutput")
+      .map((d) => ({ id: d.deviceId, label: d.label || "output", groupId: d.groupId }));
+  }
+
+  /* The label behind "default", which is what a system change moves. */
+  async defaultOutput() {
+    const list = await this.outputs();
+    const preferred = list.find((d) => d.id === "default") || list[0];
+    return preferred ? preferred.label : "";
+  }
+
+  get sinkId() { return this.ctx && "sinkId" in this.ctx ? this.ctx.sinkId : null; }
+
+  async setOutput(deviceId) {
+    const ctx = this.ensureContext();
+    if (typeof ctx.setSinkId !== "function") throw new Error("this browser cannot choose the output device");
+    await ctx.setSinkId(deviceId === "default" ? "" : deviceId);
+    return true;
+  }
+
   /* The level of what is leaving for the speakers, in dBFS. -Infinity when
    * nothing is playing at all. */
   outputLevelDb() {
