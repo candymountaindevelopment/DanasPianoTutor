@@ -1053,14 +1053,26 @@ microphone will otherwise hear the piano and flatter the score. Measured
 over eight seconds of playback, the output carries sound in 87 of 151 frames
 with the piano on against 12 with it muted (the metronome clicks).
 
-Two other things guard the output. The context watches its own state: opening
-a microphone can make the browser change output device, which interrupts the
-context, and without resuming it playback would stop for good. And
-`Transport.soundCheck()` — *Sound check* in the palette — plays a tone
-through the normal output and reports the level the meter on that output
-actually saw, which separates "the app is silent" from "the system is
-silent"; the latter is usually Windows quietening other sounds while a
-microphone is open (Sound settings → Communications).
+Three other things guard the output.
+
+The context watches its own state: opening a microphone can make the browser
+change output device, which interrupts the context — without resuming it,
+playback would stop for good.
+
+`Transport.soundCheck()` — *Sound check* in the palette, *Test* in Set up —
+plays a tone through the normal output and reports the level a meter on that
+output actually saw, which separates "the app is silent" from "the system is
+silent".
+
+And the page can choose where it plays. Opening a microphone on Windows
+commonly moves playback to the *communications* device — a headset, or a
+virtual device such as NVIDIA Broadcast — so the app plays perfectly into
+something nobody is listening to. The default output is read before the
+microphone opens and again afterwards, and a change is reported; **Sound out**
+in Set up lists the outputs and pins playback to one with
+`AudioContext.setSinkId`. Past that the app cannot help: Windows can also
+quieten or mute other applications outright while a communications device is
+in use (Sound settings → Communications).
 
 The metronome also changes voice. The ordinary click is a short sine
 (1500 Hz, 2200 Hz accented), which is the worst possible sound to play at a

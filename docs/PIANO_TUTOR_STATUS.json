@@ -3,7 +3,7 @@
     "title": "Danas Piano Tutor — technical status",
     "format": "raw.status",
     "version": 1,
-    "updated": "2026-09-23",
+    "updated": "2026-09-24",
     "maintainer_note": "Hand-maintained. Update 'status' when features change and append to 'changelog' for every change; the repository has no git history, so this file is the record.",
     "related": [
       "docs/TECHNICAL.md#14.5",
@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.7.1",
+    "version": "1.7.2",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -747,6 +747,17 @@
         "Practice panel: 'Play the piano too' for anyone on headphones — 87 of 151 frames with it on — warning that the microphone will otherwise hear the piano and flatter the score. Remembered in the browser.",
         "The AudioContext watches its own state and resumes itself: opening a microphone can make the browser change output device, which interrupts the context and would otherwise stop playback for good.",
         "New 'Sound check' command: plays a tone through the normal output and reports the level a meter on that output saw, separating a silent app from a silent system (Windows quietens other sounds while a microphone is open)."
+      ]
+    },
+    {
+      "date": "2026-09-24",
+      "version": "1.7.2",
+      "type": "fix",
+      "summary": "Choose where the tutor plays, and notice when the system moves it",
+      "changes": [
+        "Opening a microphone on Windows commonly moves playback to the communications device (a headset, or a virtual device such as NVIDIA Broadcast), so the app plays into something nobody is listening to — the usual reason a page goes silent when a microphone opens.",
+        "The default output is read before the microphone opens and again after; a change is reported in the status line.",
+        "Set up carries a 'Sound out' picker (AudioContext.setSinkId) that pins playback to a chosen device, remembered in the browser, with a Test button beside it."
       ]
     }
   ]
