@@ -252,6 +252,7 @@ class App {
     $("practice-hint").hidden = false;
     this.showHead(lesson);
     this.showInfo(lesson);
+    this.listener.ceilingMidi = lesson.midi_range[1] + 4;
     document.title = lesson.title + " — Danas Piano Tutor";
     await this.score.setLesson(i, lesson);
     this.positionChanged(0);
@@ -568,14 +569,19 @@ class App {
    * microphone is open, so it can never be read as a played note. */
   applyListening() {
     const on = $("listen").checked && this.listener.active;
-    const mute = on && this.mode === "practice" && !$("piano-too").checked;
+    const mute = on && this.mode === "practice" && $("mute-piano").checked;
+    // Above the top of the lesson there is nothing to hear but the metronome
+    // and the room, so nothing up there is registered as a note.
+    this.listener.ceilingMidi = this.lesson ? this.lesson.midi_range[1] + 4 : null;
     this.transport.updateOptions({ voice_db: mute ? -100 : -12, metronome_unpitched: on });
-    // Muting the piano is the point of Practice, but silence needs saying.
     if (mute) {
       this.status($("btn-metro").classList.contains("on")
-        ? "Practice: the piano is muted so the microphone hears only you — the metronome keeps the beat."
-        : "Practice: the piano is muted so the microphone hears only you, and the metronome is off — "
-          + "there is nothing to hear. Turn the metronome on, or tick \u201cPlay the piano too\u201d.", 9000);
+        ? "The piano is muted so the microphone hears only you — the metronome keeps the beat."
+        : "The piano is muted and the metronome is off: there is nothing to hear. "
+          + "Turn the metronome on, or untick \u201cMute the piano while scoring\u201d.", 9000);
+    } else if (on && this.mode === "practice") {
+      this.status("Listening. The piano plays too — on speakers the microphone hears it as well as you, "
+        + "so wear headphones if the score is to mean anything.", 9000);
     }
   }
 
@@ -852,13 +858,10 @@ class App {
   }
 
   wirePanels() {
-    try { $("piano-too").checked = localStorage.getItem("dpt.pianoWhileListening") === "1"; } catch (_) { /* ignore */ }
-    $("piano-too").onchange = () => {
-      try { localStorage.setItem("dpt.pianoWhileListening", $("piano-too").checked ? "1" : "0"); } catch (_) { /* ignore */ }
+    try { $("mute-piano").checked = localStorage.getItem("dpt.mutePianoWhileScoring") === "1"; } catch (_) { /* ignore */ }
+    $("mute-piano").onchange = () => {
+      try { localStorage.setItem("dpt.mutePianoWhileScoring", $("mute-piano").checked ? "1" : "0"); } catch (_) { /* ignore */ }
       this.applyListening();
-      if ($("piano-too").checked) {
-        this.status("The microphone will hear the piano as well as you — use headphones, or the score will flatter you.", 9000);
-      }
     };
     $("btn-run").onclick = () => this.startRun();
     $("btn-run-stop").onclick = () => this.stopRun();

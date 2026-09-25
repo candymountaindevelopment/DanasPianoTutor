@@ -13,6 +13,9 @@ export class Listener {
     this.buf = new Float32Array(FFT);
     this.gateDb = -55;
     this.a4 = 440;
+    // Nothing above this is a note of the lesson, so nothing above it is
+    // registered: the metronome click lives up there on purpose.
+    this.ceilingMidi = null;
     this.tracker = null;
     this.events = [];
     this.lastReading = null;
@@ -67,7 +70,10 @@ export class Listener {
     let reading = null;
     if (db > this.gateDb) {
       const p = detectPitch(this.buf, this.ctx.sampleRate);
-      if (p && p.clarity >= CLARITY_MIN) reading = { ...p, ...describe(p.hz, this.a4), db };
+      if (p && p.clarity >= CLARITY_MIN) {
+        const described = { ...p, ...describe(p.hz, this.a4), db };
+        if (this.ceilingMidi === null || described.midi <= this.ceilingMidi) reading = described;
+      }
     }
     if (this.tracker) this.tracker.push(division, reading);
     this.lastReading = reading;

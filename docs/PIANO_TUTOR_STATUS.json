@@ -3,7 +3,7 @@
     "title": "Danas Piano Tutor — technical status",
     "format": "raw.status",
     "version": 1,
-    "updated": "2026-09-24",
+    "updated": "2026-09-25",
     "maintainer_note": "Hand-maintained. Update 'status' when features change and append to 'changelog' for every change; the repository has no git history, so this file is the record.",
     "related": [
       "docs/TECHNICAL.md#14.5",
@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.7.2",
+    "version": "1.8.0",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -758,6 +758,17 @@
         "Opening a microphone on Windows commonly moves playback to the communications device (a headset, or a virtual device such as NVIDIA Broadcast), so the app plays into something nobody is listening to — the usual reason a page goes silent when a microphone opens.",
         "The default output is read before the microphone opens and again after; a change is reported in the status line.",
         "Set up carries a 'Sound out' picker (AudioContext.setSinkId) that pins playback to a chosen device, remembered in the browser, with a Test button beside it."
+      ]
+    },
+    {
+      "date": "2026-09-25",
+      "version": "1.8.0",
+      "type": "change",
+      "summary": "Practice plays everything again; nothing above the lesson is registered",
+      "changes": [
+        "The piano is no longer muted when Listen is ticked: piano and metronome play together in Practice as they do in Learn (87 of 151 frames carrying sound, against 12 when muted). Muting survives as an opt-in switch for players without headphones, since the microphone hears the tutor too and a score counts what it hears.",
+        "Listener.ceilingMidi: nothing above the lesson's top note plus four semitones is registered as a note, so the metronome — and the room — cannot become one.",
+        "Tried and rejected: a tonal click above the notes. A single sine is found at once, raising it moves the find to a sub-harmonic, and two partials beat against each other (2637 + 3349 Hz reads as E5 at clarity 0.91). The click stays noise, which has no period to find (clarity 0.33) and is measured level with the ordinary click A-weighted."
       ]
     }
   ]

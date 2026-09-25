@@ -69,11 +69,14 @@ def click(accent: bool = False, unpitched: bool = False) -> SynthParams:
     the notes a lesson uses.
     """
     if unpitched:
-        # Noise spread wide and only lightly high-passed: narrowing the band
-        # throws away the energy, and the click has to carry on a laptop
-        # speaker with the piano muted. The player gives it make-up gain
-        # (`_clicks`), since noise is perceptually quieter than a sine at the
-        # same peak. The accent is longer and a little darker.
+        # Noise, because nothing with a pitch can be made invisible to a pitch
+        # detector. A sine is found at once; raising it above the detector's
+        # ceiling only moves the find to a sub-harmonic; and two partials beat
+        # against each other, which is found at their difference (measured:
+        # 2637 + 3349 Hz reads as E5 at clarity 0.91 — right among the notes).
+        # Noise has no period at all, and only a light high-pass, because
+        # narrowing the band is what throws its loudness away. The player adds
+        # make-up gain (`_clicks`); the accent is longer and a little darker.
         return SynthParams(
             oscillator="white", duration=0.06 if accent else 0.045, amplitude=1.0,
             pitch=Trajectory.constant(C4_HZ),          # noise ignores it; the field is required

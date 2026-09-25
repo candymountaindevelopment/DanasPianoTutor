@@ -1041,17 +1041,24 @@ microphone by the Caddyfile.
 ### 14.7.2 Practice mode
 
 Ticking **Listen** in the top bar opens the microphone on the *transport's*
-`AudioContext` (one clock for both). The piano is then muted (`voice_db` to
--100) **in Practice only**, where the microphone is being scored; in Learn
-the point is to hear the piece, so it keeps playing.
+`AudioContext` (one clock for both). **Everything keeps playing**: the piano
+and the metronome, in every mode. Measured over eight seconds, the output
+carries sound in 87 of 151 frames whether Listen is on or off.
 
-That mute is the single most confusing thing the app does — ticking a box
-and losing nine tenths of the sound reads as a fault, not a feature. So it
-announces itself in the status line, and *Play the piano too* in the Practice
-panel turns it off for anyone on headphones, with the warning that the
-microphone will otherwise hear the piano and flatter the score. Measured
-over eight seconds of playback, the output carries sound in 87 of 151 frames
-with the piano on against 12 with it muted (the metronome clicks).
+Muting the piano while scoring was the default once, and it was a mistake:
+ticking a box and losing nine tenths of the sound reads as a fault, not a
+feature. It survives as *Mute the piano while scoring* in the Practice panel,
+off by default, because there is a real trade here — on speakers the
+microphone hears the tutor as well as the player, and a score counts what it
+hears, so anyone who wants the score to mean something wears headphones or
+mutes the piano. The app says so when Practice starts listening rather than
+deciding for them.
+
+Two things keep the metronome out of the score. The click itself is noise
+(below), and the listener **registers nothing above the lesson's top note
+plus four semitones** (`Listener.ceilingMidi`): above that there is nothing
+to hear but the metronome and the room. Over a rendered metronome track the
+detector finds a note in **0 frames** even before the ceiling applies.
 
 Three other things guard the output.
 
@@ -1079,9 +1086,11 @@ The metronome also changes voice. The ordinary click is a short sine
 pitch detector: it is perfectly periodic, and measured through the real
 detector it reads as F♯6 at clarity 0.97. Raising its pitch above the 2 kHz
 ceiling would not help either — a periodic tone dips at every multiple of its
-period, so YIN would report a sub-harmonic inside the range. So
-`metronome_unpitched` (`raw/teach/voice.py`) switches to a short noise burst,
-high-passed at 1.2 kHz (0.9 kHz accented): no period to find. Over a rendered
+period, so YIN would report a sub-harmonic inside the range. Two partials do not help either: they beat against each other and the
+difference is found — 2637 + 3349 Hz reads as E5 at clarity 0.91, right among
+the notes a lesson uses. Nothing with a pitch can be hidden from a pitch
+detector. So `metronome_unpitched` (`raw/teach/voice.py`) switches to a short
+noise burst, high-passed at 1.2 kHz (0.9 kHz accented): no period to find. Over a rendered
 metronome track the ordinary click is read as a pitch in 23 frames and the
 practice click in **none**.
 
