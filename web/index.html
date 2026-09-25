@@ -161,6 +161,7 @@
           <label title="Where the tutor plays. Opening a microphone can move this to a headset or a virtual device.">Sound out
             <select id="output"><option value="default">system default</option></select></label>
           <button id="btn-sound-check" title="Play a tone and measure what leaves for the speakers">Test</button>
+          <button id="btn-diagnose" title="Everything that decides whether you hear anything">Diagnose</button>
         </div>
         <div class="scroll" id="feature-list"></div>
       </section>
@@ -193,6 +194,21 @@
     <pre id="report" class="report"></pre>
   </div>
 </div>
+
+<dialog id="diag">
+  <div class="dialog-head"><b>Sound diagnosis</b>
+    <span class="spacer"></span>
+    <button id="diag-tone">Play a test tone</button>
+    <button id="diag-copy">Copy</button>
+    <button id="diag-close">Close</button>
+  </div>
+  <div class="diag-body">
+    <div class="meter-row"><span class="sub">Output now</span>
+      <div class="level"><i id="diag-bar"></i></div>
+      <span class="mono" id="diag-level">—</span></div>
+    <table id="diag-table"></table>
+  </div>
+</dialog>
 
 <dialog id="help">
   <div class="dialog-head"><b>Writing lessons</b><button id="btn-help-close">Close</button></div>

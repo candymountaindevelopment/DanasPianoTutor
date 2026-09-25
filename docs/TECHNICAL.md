@@ -1095,6 +1095,15 @@ plays a tone through the normal output and reports the level a meter on that
 output actually saw, which separates "the app is silent" from "the system is
 silent".
 
+*Diagnose* (Set up, or the palette) goes further: one live panel with the
+build stamp, the context's state and rate, the device being played into, what
+the transport is doing, the measured output peak, whether the piano and
+metronome are on, whether the microphone is open and with what processing,
+and the length of the last render. It updates three times a second, so the
+interesting moment — pressing play — can be watched, and **Copy** puts the
+lot on the clipboard. When a report says "no sound" and every measurement
+here says otherwise, this is the thing that settles it.
+
 And the page can choose where it plays. Opening a microphone on Windows
 commonly moves playback to the *communications* device — a headset, or a
 virtual device such as NVIDIA Broadcast — so the app plays perfectly into

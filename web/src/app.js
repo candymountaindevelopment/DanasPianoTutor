@@ -620,6 +620,77 @@ class App {
     }
   }
 
+  /* Everything that decides whether a sound reaches the ear, in one place:
+   * what the app is playing, where it is playing it, and what opening the
+   * microphone did to either. Written to be read by someone else. */
+  async diagnose() {
+    const dlg = $("diag");
+    if (!dlg.open) dlg.showModal();
+    await this.drawDiagnosis();
+    if (this._diagTimer) clearInterval(this._diagTimer);
+    let peak = -Infinity;
+    // Live, because the interesting moment is while it is playing.
+    this._diagTimer = setInterval(async () => {
+      if (!dlg.open) { clearInterval(this._diagTimer); this._diagTimer = null; return; }
+      const db = this.transport.outputLevelDb();
+      peak = Math.max(peak, db);
+      $("diag-bar").style.width = Math.max(0, Math.min(100, (db + 60) / 60 * 100)) + "%";
+      $("diag-level").textContent = db > -90 ? `${db.toFixed(0)} dB (peak ${peak.toFixed(0)})` : "silent";
+      if (!this._diagBusy) { this._diagBusy = true; await this.drawDiagnosis(peak); this._diagBusy = false; }
+    }, 300);
+  }
+
+  async drawDiagnosis(peak) {
+    const t = this.transport;
+    const ctx = t.ensureContext();
+    let sinkLabel = "system default";
+    try {
+      const outs = await t.outputs();
+      const current = outs.find((d) => d.id === (t.sinkId || "default"));
+      if (current) sinkLabel = current.label;
+      else if (t.sinkId) sinkLabel = t.sinkId.slice(0, 8) + "…";
+      this._diagOutputs = outs.length;
+    } catch (_) { this._diagOutputs = "?"; }
+
+    const track = this.listener.stream ? this.listener.stream.getAudioTracks()[0] : null;
+    const settings = track && track.getSettings ? track.getSettings() : {};
+    const mic = track ? `${track.label || "unnamed"} — ${track.readyState}`
+      : this.listener.injected ? "a test source, not the microphone" : "not open";
+    const rows = [
+      ["Build", `v${this.about.version || "?"} · ${this.about.build || "?"} · ${this.about.built || "?"}`],
+      ["Mode", this.mode],
+      ["Audio context", `${ctx.state}, ${Math.round(ctx.sampleRate)} Hz`, ctx.state === "running" ? "good" : "bad"],
+      ["Playing into", `${sinkLabel} (${this._diagOutputs} outputs known)`],
+      ["Transport", t.playing ? (t.inRun ? "playing a run" : "playing") : "stopped"],
+      ["Output level", peak === undefined || peak === -Infinity ? "nothing measured yet"
+        : `peak ${peak.toFixed(0)} dB since this opened`,
+        peak !== undefined && peak > -60 ? "good" : peak === undefined ? "" : "bad"],
+      ["Piano", t.options.voice_db <= -60 ? "muted" : `on (${t.options.voice_db} dB)`,
+        t.options.voice_db <= -60 ? "bad" : "good"],
+      ["Metronome", t.options.metronome
+        ? (t.options.metronome_unpitched ? "on (practice click)" : "on") : "off",
+        t.options.metronome ? "good" : "bad"],
+      ["Listen", $("listen").checked ? (this.listener.active ? "on" : "ticked, but not listening") : "off",
+        $("listen").checked && !this.listener.active ? "bad" : ""],
+      ["Microphone", mic],
+      ["Mic processing", track
+        ? `echo ${settings.echoCancellation}, noise ${settings.noiseSuppression}, gain ${settings.autoGainControl}`
+        : "—"],
+      ["Rendered audio", t.rendered
+        ? `${Math.round(t.rendered.frames / t.rendered.sample_rate * 10) / 10} s at ${t.rendered.sample_rate} Hz`
+        : "nothing rendered yet"],
+    ];
+    const table = $("diag-table");
+    table.replaceChildren();
+    for (const [name, value, cls] of rows) {
+      const tr = document.createElement("tr");
+      const a = document.createElement("td"); a.textContent = name;
+      const b = document.createElement("td"); b.textContent = value; if (cls) b.className = cls;
+      tr.append(a, b); table.appendChild(tr);
+    }
+    this._diagRows = rows;
+  }
+
   /* "Is the app making any sound?" — the answer separates a problem in the
    * app from one in the system, which no amount of staring at the code can. */
   async soundCheck() {
@@ -998,6 +1069,14 @@ class App {
     };
     $("btn-sound-check").onclick = () => this.soundCheck();
     $("btn-check-update").onclick = () => this.checkForUpdate(true);
+    $("btn-diagnose").onclick = () => this.diagnose();
+    $("diag-close").onclick = () => $("diag").close();
+    $("diag-tone").onclick = () => this.transport.soundCheck(1.2);
+    $("diag-copy").onclick = async () => {
+      const text = (this._diagRows || []).map(([a, b]) => `${a}: ${b}`).join("\n");
+      try { await navigator.clipboard.writeText(text); this.status("Diagnosis copied."); }
+      catch (_) { window.prompt("Copy this:", text); }
+    };
     this.refreshOutputs().then(() => {
       try {
         const saved = localStorage.getItem("dpt.output");
@@ -1163,6 +1242,7 @@ class App {
       } },
       { where: "App", label: "Set up — feature switches", feature: "app.settings", run: () => this.showSwitches() },
       { where: "App", label: "Sound check — is the app making any sound?", run: () => this.soundCheck() },
+      { where: "App", label: "Diagnose sound — everything at once", run: () => this.diagnose() },
       { where: "App", label: "Check for a newer build", run: () => this.checkForUpdate(true) },
       { where: "App", label: "Writing lessons — reference", feature: "tools.help", keys: "F1", run: () => this.showHelp() },
       { where: "App", label: "About Danas Tutor", run: () => {

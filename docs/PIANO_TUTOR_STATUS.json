@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.9.0",
+    "version": "1.9.1",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -797,6 +797,16 @@
         "Every build is stamped with the commit it came from and the time it was made (GITHUB_SHA under Actions, git in a working copy, '+' when dirty); the stamp is written into about.json and precache.json.",
         "The stamp is shown on the welcome screen and in Set up: version, build, and when it was built.",
         "The page compares its own stamp with the server's precache.json — on load, when the tab is focused, and from 'Check for a newer build' — and shows 'Update ready — reload' in the top bar when a newer one is live, naming both builds."
+      ]
+    },
+    {
+      "date": "2026-09-25",
+      "version": "1.9.1",
+      "type": "feature",
+      "summary": "A live sound diagnosis",
+      "changes": [
+        "Diagnose (Set up, or the palette): one live panel with the build stamp, the audio context's state and rate, the output device, what the transport is doing, the measured output peak, the piano and metronome settings, the microphone and its processing, and the last render — updating three times a second, with Copy for the clipboard.",
+        "Three rounds of fixes had not settled a report of silence that no measurement here could reproduce; this turns that into one screenshot."
       ]
     }
   ]
