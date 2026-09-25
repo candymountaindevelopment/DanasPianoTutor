@@ -29,9 +29,10 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
   const url = new URL(req.url);
-  // Big, immutable things stay cache-first; the app's own files are checked
-  // against the network first so a new build is never half-applied.
-  const immutable = url.pathname.includes("/vendor/") || url.pathname.endsWith("core.zip");
+  // Only the pinned runtime is immutable. core.zip holds the Python core and
+  // is rebuilt with every change, so serving it from cache would leave a
+  // returning visitor running yesterday's Python behind today's JavaScript.
+  const immutable = url.pathname.includes("/vendor/");
   event.respondWith((async () => {
     if (!immutable) {
       try {

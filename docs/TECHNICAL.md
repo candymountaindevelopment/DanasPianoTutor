@@ -940,11 +940,24 @@ way back out of a preset that hid the switches. Presets: *Everything*,
 
 `sw.js` precaches the file list from `precache.json` under a cache named for
 its content hash and deletes older caches on activation, so the app (including
-the 17 MB runtime) works offline after the first visit. The big immutable
-files (`vendor/`, `core.zip`) are served cache-first; **the app's own files are
-fetched network-first** with a cache fallback, so a new build can never be
-half-applied from a stale cache — the failure mode that once produced a
-runaway canvas from a mismatched stylesheet (§14.6.8).
+the 17 MB runtime) works offline after the first visit. **Only `vendor/` is
+cache-first**: it is a pinned Pyodide release and never changes. Everything
+else, `core.zip` included, is fetched network-first with a cache fallback, so
+a new build can never be half-applied from a stale cache.
+
+`core.zip` was on the immutable list once, which was wrong in a way that took
+a while to see: it holds the whole Python core and is rebuilt with every
+change, so a returning visitor ran yesterday's Python behind today's
+JavaScript until the cache was cleared by hand. A mismatch there does not
+announce itself — it looks like the app hanging.
+
+Which is the other half: if the worker dies, every call waiting on it used to
+sit unresolved, and since the app waits on `parse` before it can show a
+lesson, the screen stayed at "Loading…" for ever with nothing to say why.
+`Bridge.fail()` now rejects what is pending, `Bridge.boot()` gives the runtime
+90 seconds and then gives up, and a failed boot writes the reason on the
+splash — the status bar is a thin line at the foot of the screen and may be
+out of sight.
 
 Two deployments are supported:
 

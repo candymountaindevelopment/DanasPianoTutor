@@ -20,16 +20,37 @@ export class Bridge {
       else entry.reject(new Error(msg.error));
     };
     this.worker.onerror = (event) => {
-      if (this.onStatus) this.onStatus("Worker error: " + event.message, -1);
+      this.fail("The Python worker stopped: " + (event.message || "unknown error"));
     };
+    this.worker.onmessageerror = () => this.fail("The Python worker sent something unreadable.");
+  }
+
+  /* Nothing more will arrive: settle everything that is waiting, or the app
+   * sits at "Loading…" with no way to say what happened. */
+  fail(message) {
+    this.broken = message;
+    if (this.onStatus) this.onStatus(message, -1);
+    for (const [, entry] of this.pending) entry.reject(new Error(message));
+    this.pending.clear();
   }
 
   call(op, args) {
+    if (this.broken) return Promise.reject(new Error(this.broken));
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
       this.worker.postMessage({ id, op, args });
     });
+  }
+
+  /* The first call has to wait for Pyodide, numpy and the core to unpack;
+   * everything after it is quick. If that never finishes, say so. */
+  boot(seconds = 90) {
+    return Promise.race([
+      this.about(),
+      new Promise((_, reject) => setTimeout(
+        () => reject(new Error(`the Python runtime did not start within ${seconds} seconds`)), seconds * 1000)),
+    ]);
   }
 
   about() { return this.call("about"); }

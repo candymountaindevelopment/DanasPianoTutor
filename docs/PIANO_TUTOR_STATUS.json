@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.8.0",
+    "version": "1.8.1",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -769,6 +769,17 @@
         "The piano is no longer muted when Listen is ticked: piano and metronome play together in Practice as they do in Learn (87 of 151 frames carrying sound, against 12 when muted). Muting survives as an opt-in switch for players without headphones, since the microphone hears the tutor too and a score counts what it hears.",
         "Listener.ceilingMidi: nothing above the lesson's top note plus four semitones is registered as a note, so the metronome — and the room — cannot become one.",
         "Tried and rejected: a tonal click above the notes. A single sine is found at once, raising it moves the find to a sub-harmonic, and two partials beat against each other (2637 + 3349 Hz reads as E5 at clarity 0.91). The click stays noise, which has no period to find (clarity 0.33) and is measured level with the ordinary click A-weighted."
+      ]
+    },
+    {
+      "date": "2026-09-25",
+      "version": "1.8.1",
+      "type": "fix",
+      "summary": "Stop the app hanging at \"Loading…\" behind a stale cache",
+      "changes": [
+        "The service worker treated core.zip as immutable alongside the pinned Pyodide release, but core.zip is the whole Python core and is rebuilt with every change — a returning visitor ran yesterday's Python behind today's JavaScript. Only vendor/ is cache-first now.",
+        "Bridge.fail(): when the worker dies, everything waiting on it is rejected instead of hanging for ever; the app waits on parse before it can show a lesson, so a dead worker used to leave the title at 'Loading…' with no explanation.",
+        "Bridge.boot() gives the runtime 90 seconds and then says so, and a failed boot writes the reason on the splash rather than the status bar, which can be off the bottom of the screen."
       ]
     }
   ]

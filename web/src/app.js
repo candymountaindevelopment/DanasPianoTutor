@@ -118,7 +118,7 @@ class App {
     if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
       navigator.serviceWorker.register("sw.js").catch(() => {});
     }
-    await this.bridge.about();           // resolves when the worker has booted
+    await this.bridge.boot();            // resolves when the worker has booted
     this.ready = true;
     const shared = await readShareLink().catch(() => null);
     if (shared) {
@@ -1222,4 +1222,18 @@ class App {
 
 const app = new App();
 window.tutor = app;   // handy in the console
-app.boot().catch((err) => { app.status("Failed to start: " + err.message, 0); console.error(err); });
+app.boot().catch((err) => {
+  console.error(err);
+  app.status("Failed to start: " + err.message, 0);
+  // The status bar is a thin line at the foot of the screen and may be out of
+  // sight; the splash is not, so the failure goes there.
+  const splash = document.getElementById("splash");
+  splash.hidden = false;
+  splash.classList.remove("ready");
+  const line = document.getElementById("splash-status");
+  line.textContent = "Could not start: " + err.message;
+  line.style.color = "var(--missed)";
+  const band = splash.querySelector(".splash-band p");
+  if (band) band.textContent = "Reload the page (Ctrl+F5). If it keeps happening, the cached copy may be stale: "
+    + "open the address with ?reset after it.";
+});
