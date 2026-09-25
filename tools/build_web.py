@@ -85,6 +85,27 @@ def copy_lessons() -> None:
     print(f"lessons: {len(index)} files")
 
 
+def build_stamp() -> dict:
+    """Which commit this build came from, and when. GitHub Actions sets
+    GITHUB_SHA; a working copy answers with git, and says so if it is dirty."""
+    import datetime
+    import os
+    import subprocess
+
+    sha = os.environ.get("GITHUB_SHA", "")
+    dirty = False
+    if not sha:
+        try:
+            sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True,
+                                 text=True, timeout=10).stdout.strip()
+            dirty = bool(subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True,
+                                        text=True, timeout=10).stdout.strip())
+        except Exception:
+            sha = ""
+    build = (sha[:7] + ("+" if dirty else "")) if sha else "local"
+    return {"build": build, "built": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")}
+
+
 def copy_assets() -> None:
     assets = WEB / "assets"
     assets.mkdir(parents=True, exist_ok=True)
@@ -92,8 +113,10 @@ def copy_assets() -> None:
     shutil.copy2(ROOT / "docs" / "LESSON_FORMAT.md", assets / "LESSON_FORMAT.md")
     from raw.teach import web_api
 
-    (assets / "about.json").write_text(web_api.about(), encoding="utf-8")
-    print("assets: splash photo, LESSON_FORMAT.md, about.json")
+    about = json.loads(web_api.about())
+    about.update(build_stamp())
+    (assets / "about.json").write_text(json.dumps(about, indent=1), encoding="utf-8")
+    print(f"assets: splash photo, LESSON_FORMAT.md, about.json (build {about['build']}, {about['built']})")
 
 
 def _download(url: str, target: Path) -> None:
@@ -188,7 +211,10 @@ def write_precache() -> None:
             digest.update(rel.encode())
             digest.update(path.read_bytes())
     version = digest.hexdigest()[:12]
-    (WEB / "precache.json").write_text(json.dumps({"version": version, "files": files}, indent=1), encoding="utf-8")
+    # The stamp travels here too: the page compares the stamp it was built
+    # with against this one to know whether it is out of date.
+    payload = {"version": version, "files": files, **build_stamp()}
+    (WEB / "precache.json").write_text(json.dumps(payload, indent=1), encoding="utf-8")
     print(f"precache.json: {len(files)} files, version {version}")
 
 

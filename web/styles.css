@@ -74,6 +74,12 @@ label { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px
   border: 1px solid var(--hairline); border-radius: 999px; }
 .listen:has(input:checked) { color: var(--now); border-color: var(--now-dim); background: #0d1a17; }
 .listen input { accent-color: var(--now); margin: 0; }
+.bar-btn.update { color: var(--keybed); background: var(--now); border-radius: 999px; font-weight: 600;
+  padding: 6px 12px; font-size: 12px; }
+.bar-btn.update:hover { background: var(--ink); }
+.build { font-family: var(--mono); font-size: 10.5px; color: #5d6a6e; }
+#build-line { font-size: 11px; }
+
 .heard { font-family: var(--mono); font-size: 15px; color: var(--now); min-width: 92px; text-align: right; }
 .heard small { color: var(--quiet); margin-left: 5px; font-size: 11px; }
 

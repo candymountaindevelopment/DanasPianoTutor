@@ -859,7 +859,18 @@ engraver reserves for it is cropped out of the viewBox; print keeps both.
 | `copy_lessons()` | `web/lessons/*.json` and an index; each example is parsed first and skipped if it does not load |
 | `copy_assets()` | splash photo, `LESSON_FORMAT.md` (the in-app help), `about.json` |
 | `--vendor` | `web/vendor/`: pinned Pyodide 0.27.7, the numpy wheel, Bravura and its licence. Downloaded once, never from a CDN at runtime |
-| `write_precache()` | `precache.json`: the file list and a SHA-256 over their contents, which is the service-worker cache version |
+| `write_precache()` | `precache.json`: the file list, a SHA-256 over their contents (the service-worker cache version) and the build stamp |
+
+Every build is stamped with the commit it came from and the time it was made
+(`build_stamp()`: `GITHUB_SHA` under Actions, `git rev-parse` in a working
+copy, with a `+` when that copy is dirty). The stamp goes into `about.json`,
+which the page reads, and into `precache.json`, which the server always has
+current — so the page can compare the two and know whether it is the build
+that is live. It asks on load, whenever the tab is focused, and from *Check
+for a newer build*; when they differ, an **Update ready — reload** button
+appears in the top bar. The stamp itself is on the welcome screen and in Set
+up, because a version number alone cannot answer "is this the one you just
+deployed?".
 | `--dist` | a clean servable tree in `dist/` (16 MB), refusing loose `.py`, unexpected JSON or files over 20 MB, with `listen/` copied in at `/listen/` |
 
 ### 14.6.2 Worker protocol

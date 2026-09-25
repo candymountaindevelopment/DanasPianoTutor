@@ -118,6 +118,10 @@ class App {
     if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
       navigator.serviceWorker.register("sw.js").catch(() => {});
     }
+    // A deploy takes a minute or two to appear, so the page asks rather than
+    // leaving you to guess: on load, whenever the tab comes back, and on demand.
+    this.checkForUpdate();
+    window.addEventListener("focus", () => this.checkForUpdate());
     await this.bridge.boot();            // resolves when the worker has booted
     this.ready = true;
     const shared = await readShareLink().catch(() => null);
@@ -153,9 +157,39 @@ class App {
   fillSplash() {
     $("splash-name").textContent = this.about.name || "Danas Piano Tutor";
     $("splash-v").textContent = "v " + (this.about.version || "");
-    $("splash-date").textContent = new Date().toISOString().slice(0, 10);
+    $("splash-date").textContent = this.about.built || new Date().toISOString().slice(0, 10);
     $("splash-engine").textContent = "RAW engine " + (this.about.engine || "");
     $("splash-tagline").textContent = this.about.tagline || "";
+    this.showBuild();
+  }
+
+  /* The stamp of the build now running: which commit, and when it was made. */
+  showBuild() {
+    const text = `v${this.about.version || "?"} · build ${this.about.build || "?"} · ${this.about.built || "?"}`;
+    $("splash-build").textContent = text;
+    $("build-line").textContent = text;
+  }
+
+  /* Is a newer build on the server? The stamp this page was built with is in
+   * about.json, which came from the same cache generation as the rest of the
+   * app; precache.json on the server carries the current one. */
+  async checkForUpdate(manual = false) {
+    try {
+      const reg = navigator.serviceWorker ? await navigator.serviceWorker.getRegistration() : null;
+      if (reg) await reg.update();
+      const fresh = await fetch("precache.json", { cache: "no-store" }).then((r) => r.json());
+      const mine = this.about.build || "";
+      if (fresh.build && mine && fresh.build !== mine) {
+        $("btn-update").hidden = false;
+        $("btn-update").title = `You have build ${mine}; the server has ${fresh.build} (${fresh.built}).`;
+        if (manual) this.status(`A newer build is on the server: ${fresh.build}, ${fresh.built}. Reload to take it.`, 0);
+        return true;
+      }
+      if (manual) this.status(`This is the newest build: ${mine || "?"} · ${this.about.built || "?"}.`, 8000);
+    } catch (e) {
+      if (manual) this.status("Could not ask the server: " + e.message, 8000);
+    }
+    return false;
   }
 
   splashStatus(text, progress) {
@@ -381,6 +415,7 @@ class App {
 
   wireBar() {
     $("btn-palette").onclick = () => this.palette.toggle();
+    $("btn-update").onclick = () => location.reload();
     $("btn-more").onclick = () => this.palette.toggle();
     $("listen").onchange = () => this.listenChanged();
     $("btn-reset-app").onclick = (e) => { e.stopPropagation(); this.restoreSettings(); this.dismissSplash(); };
@@ -962,6 +997,7 @@ class App {
       }
     };
     $("btn-sound-check").onclick = () => this.soundCheck();
+    $("btn-check-update").onclick = () => this.checkForUpdate(true);
     this.refreshOutputs().then(() => {
       try {
         const saved = localStorage.getItem("dpt.output");
@@ -1127,6 +1163,7 @@ class App {
       } },
       { where: "App", label: "Set up — feature switches", feature: "app.settings", run: () => this.showSwitches() },
       { where: "App", label: "Sound check — is the app making any sound?", run: () => this.soundCheck() },
+      { where: "App", label: "Check for a newer build", run: () => this.checkForUpdate(true) },
       { where: "App", label: "Writing lessons — reference", feature: "tools.help", keys: "F1", run: () => this.showHelp() },
       { where: "App", label: "About Danas Tutor", run: () => {
         const s = $("splash"); s.hidden = false; s.classList.add("ready");

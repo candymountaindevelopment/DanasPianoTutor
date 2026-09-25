@@ -19,7 +19,7 @@
     <h1 id="splash-name">Danas Piano Tutor</h1>
     <p id="splash-tagline"></p>
     <div class="splash-progress"><div id="splash-bar"></div></div>
-    <div class="splash-foot"><span id="splash-status">Loading…</span><span><button id="btn-reset-app" class="link" title="Forget the saved settings and show every part of the app again">Reset app settings</button> · Part of Retro Audio Workstation</span></div>
+    <div class="splash-foot"><span id="splash-status">Loading…</span><span id="splash-build" class="build"></span><span><button id="btn-reset-app" class="link" title="Forget the saved settings and show every part of the app again">Reset app settings</button> · Part of Retro Audio Workstation</span></div>
   </div>
 </div>
 
@@ -34,6 +34,7 @@
       <input type="checkbox" id="listen"><span>Listen</span>
     </label>
     <span class="spacer"></span>
+    <button class="bar-btn update" id="btn-update" hidden title="A newer build is on the server">Update ready — reload</button>
     <span class="heard" id="heard"></span>
     <button class="bar-btn" id="btn-more" title="More">⋯</button>
   </header>
@@ -151,6 +152,10 @@
         <div class="row">
           <label title="How many white keys a hand comfortably covers. Blank = the lesson's own span.">Hand span
             <input id="span" type="number" min="5" max="8" step="1" class="bar mono" placeholder="lesson"></label>
+        </div>
+        <div class="row">
+          <span class="sub">This build</span><span id="build-line" class="mono quiet"></span>
+          <button id="btn-check-update">Check for a newer one</button>
         </div>
         <div class="row">
           <label title="Where the tutor plays. Opening a microphone can move this to a headset or a virtual device.">Sound out

@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.8.1",
+    "version": "1.9.0",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -220,6 +220,12 @@
         "state": "done",
         "feature": "Phone layouts: portrait puts the rail at the bottom and the panel in a sheet over the stage with the transport in its own row; landscape keeps an icon rail and squeezes the bands; keyboard octaves and staff size are chosen from the screen, 40 px touch targets, 100dvh, safe-area insets",
         "notes": "styles.css media queries plus Keyboard.fit/refit and ScoreView.fitScale; verified at 390x844 and 844x390"
+      },
+      {
+        "area": "web",
+        "state": "done",
+        "feature": "Build stamps: every build carries the commit and time it was made, shown on the welcome screen and in Set up; the page compares its stamp with the server's and offers 'Update ready — reload'",
+        "notes": "tools/build_web.py build_stamp() into about.json and precache.json; App.checkForUpdate on load, on focus and on demand"
       }
     ],
     "examples": [
@@ -780,6 +786,17 @@
         "The service worker treated core.zip as immutable alongside the pinned Pyodide release, but core.zip is the whole Python core and is rebuilt with every change — a returning visitor ran yesterday's Python behind today's JavaScript. Only vendor/ is cache-first now.",
         "Bridge.fail(): when the worker dies, everything waiting on it is rejected instead of hanging for ever; the app waits on parse before it can show a lesson, so a dead worker used to leave the title at 'Loading…' with no explanation.",
         "Bridge.boot() gives the runtime 90 seconds and then says so, and a failed boot writes the reason on the splash rather than the status bar, which can be off the bottom of the screen."
+      ]
+    },
+    {
+      "date": "2026-09-25",
+      "version": "1.9.0",
+      "type": "feature",
+      "summary": "Know which build you are looking at",
+      "changes": [
+        "Every build is stamped with the commit it came from and the time it was made (GITHUB_SHA under Actions, git in a working copy, '+' when dirty); the stamp is written into about.json and precache.json.",
+        "The stamp is shown on the welcome screen and in Set up: version, build, and when it was built.",
+        "The page compares its own stamp with the server's precache.json — on load, when the tab is focused, and from 'Check for a newer build' — and shows 'Update ready — reload' in the top bar when a newer one is live, naming both builds."
       ]
     }
   ]
