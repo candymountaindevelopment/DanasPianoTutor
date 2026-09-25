@@ -1104,7 +1104,18 @@ interesting moment — pressing play — can be watched, and **Copy** puts the
 lot on the clipboard. When a report says "no sound" and every measurement
 here says otherwise, this is the thing that settles it.
 
-And the page can choose where it plays. Opening a microphone on Windows
+One cause is outside all of this, and it is worth knowing before spending a
+day on the code. Windows treats an open microphone as a call and can quieten
+or mute **every other application** while it is held — the Communications
+setting. It was diagnosed here by opening two builds in two tabs on different
+ports, one of them a build old enough to have no microphone code at all:
+ticking Listen in the new tab silenced the old one too. Nothing in a page can
+reach another origin, and nothing in a page can see it happening (the app's
+own meter still shows signal, because the app is still playing), so the app
+says where the setting lives — once, the first time a microphone is opened,
+and permanently in *Diagnose*.
+
+The page can also choose where it plays. Opening a microphone on Windows
 commonly moves playback to the *communications* device — a headset, or a
 virtual device such as NVIDIA Broadcast — so the app plays perfectly into
 something nobody is listening to. The default output is read before the

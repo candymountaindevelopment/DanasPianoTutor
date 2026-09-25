@@ -581,6 +581,7 @@ class App {
         } else {
           this.status("Listening. Press play and play along with the metronome.", 8000);
         }
+        this.duckingNote();
       } catch (e) {
         $("listen").checked = false;
         this.status(e.name === "NotAllowedError"
@@ -679,6 +680,9 @@ class App {
       ["Rendered audio", t.rendered
         ? `${Math.round(t.rendered.frames / t.rendered.sample_rate * 10) / 10} s at ${t.rendered.sample_rate} Hz`
         : "nothing rendered yet"],
+      ["If other apps go quiet too",
+        "the system is muting them for the microphone — Windows: Sound settings → More sound settings → "
+        + "Communications → Do nothing. No page can see or prevent this."],
     ];
     const table = $("diag-table");
     table.replaceChildren();
@@ -707,6 +711,23 @@ class App {
     } catch (e) {
       this.status("Sound check failed: " + e.message, 0);
     }
+  }
+
+  /* Windows can quieten, or mute outright, every other application while a
+   * microphone is open — it treats it as a call. Nothing in a page can see
+   * that happening (the app's own meter still shows signal, because the
+   * app is still playing), and nothing in a page can prevent it, so the
+   * first time a microphone is opened here, say where the setting lives.
+   * The giveaway is that sound from other programs goes too. */
+  duckingNote() {
+    try {
+      if (localStorage.getItem("dpt.duckingNote") === "1") return;
+      localStorage.setItem("dpt.duckingNote", "1");
+    } catch (_) { /* private mode: show it every time, it is short */ }
+    if (!navigator.userAgent.includes("Windows")) return;
+    setTimeout(() => this.status("If everything on the computer goes quiet while Listen is on — other programs too — "
+      + "that is Windows muting other sounds for a microphone: Sound settings → More sound settings → "
+      + "Communications → Do nothing.", 0), 9000);
   }
 
   showHeard(reading) {

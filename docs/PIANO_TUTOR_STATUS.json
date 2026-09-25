@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.9.1",
+    "version": "1.9.2",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -807,6 +807,17 @@
       "changes": [
         "Diagnose (Set up, or the palette): one live panel with the build stamp, the audio context's state and rate, the output device, what the transport is doing, the measured output peak, the piano and metronome settings, the microphone and its processing, and the last render — updating three times a second, with Copy for the clipboard.",
         "Three rounds of fixes had not settled a report of silence that no measurement here could reproduce; this turns that into one screenshot."
+      ]
+    },
+    {
+      "date": "2026-09-25",
+      "version": "1.9.2",
+      "type": "docs",
+      "summary": "Name the cause of silence that no page can see",
+      "changes": [
+        "Diagnosed by running two builds in two tabs on different ports, one old enough to contain no microphone code: ticking Listen in the new tab silenced the old one as well. Windows treats an open microphone as a call and can mute every other application (Sound settings → More sound settings → Communications).",
+        "No page can see this happening — the app's own output meter still shows signal because the app is still playing — and none can prevent it, so the app names the setting: once, the first time a microphone is opened on a Windows machine, and permanently as a row in Diagnose.",
+        "Confirmed unaffected on mobile, where the behaviour does not exist."
       ]
     }
   ]
