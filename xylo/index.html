@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1016">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Xylophone — play a note and watch it ring</title>
+<!--
+  One file, on purpose. No build step, no modules, no fonts or scripts from
+  anywhere: open it by double-clicking, or serve the folder if your browser
+  refuses a microphone on file:// URLs. Nothing here talks to the tutor.
+
+  What it does: listens to the microphone, works out which note is sounding
+  (YIN, the same method the tutor uses, copied here so this folder stands on
+  its own), and strikes that bar on a xylophone. Bars can also be clicked,
+  which sounds a mallet tone, so it is worth opening with no microphone at all.
+-->
+<style>
+  :root {
+    --bg: #0b0f14;
+    --ink: #eef3f6;
+    --quiet: #8b98a3;
+    --hairline: #1d262e;
+    --glow: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font: 14px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif; overflow: hidden;
+    overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
+  .app { height: 100%; height: 100dvh; display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+
+  header { flex: none; display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+    border-bottom: 1px solid var(--hairline); user-select: none; -webkit-user-select: none; }
+  .controls { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: 0.3px; }
+  h1 span { color: var(--quiet); font-weight: 400; }
+  button, select, input { font: inherit; color: var(--ink); background: #141b22;
+    border: 1px solid var(--hairline); border-radius: 8px; padding: 7px 12px; }
+  button { cursor: pointer; }
+  button:hover { border-color: #3b4854; }
+  button.on { background: #1d5e46; border-color: #2f9e73; color: #eafff5; }
+  label { display: inline-flex; align-items: center; gap: 7px; color: var(--quiet); white-space: nowrap; }
+  input[type=range] { width: 110px; padding: 0; accent-color: #46d7a1; }
+  .spacer { flex: 1; }
+
+  .readout { display: flex; align-items: baseline; gap: 10px; min-width: 190px; justify-content: flex-end; }
+  .note { font-size: 26px; font-weight: 700; letter-spacing: 0.5px; min-width: 74px; text-align: right; }
+  .hz { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--quiet); }
+  .cents { font-family: ui-monospace, Consolas, monospace; font-size: 12px; min-width: 52px; }
+
+  .stage { flex: 1; position: relative; min-height: 0; }
+  .stage > canvas { position: absolute; inset: 0; display: block;
+    touch-action: none; -webkit-tap-highlight-color: transparent;
+    user-select: none; -webkit-user-select: none; }
+
+  footer { flex: none; display: flex; align-items: center; gap: 14px; padding: 8px 16px;
+    border-top: 1px solid var(--hairline); color: var(--quiet); font-size: 12.5px; }
+  kbd { font-family: ui-monospace, Consolas, monospace; font-size: 11px; background: #141b22;
+    border: 1px solid var(--hairline); border-radius: 5px; padding: 1px 6px; }
+  /* Phones. The controls become one strip that scrolls sideways, so the
+   * stage keeps the screen; Listen and Demo sit at its head and are always
+   * in reach. The keyboard hint goes, the status line stays — it is where a
+   * refused microphone is explained. */
+  @media (max-width: 760px), (max-height: 500px) {
+    header { flex-wrap: wrap; gap: 8px; padding: 7px 10px; }
+    h1 { display: none; }
+    .spacer { display: none; }
+    .readout { order: 1; flex: 1 1 auto; min-width: 0; justify-content: flex-start; }
+    .note { font-size: 22px; min-width: 62px; text-align: left; }
+    .controls { order: 2; width: 100%; flex-wrap: nowrap; gap: 8px;
+      overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+      -webkit-overflow-scrolling: touch; }
+    .controls::-webkit-scrollbar { display: none; }
+    .controls > * { flex: none; }
+    button, select { min-height: 40px; padding: 8px 14px; }
+    input[type=range] { width: 92px; height: 40px; }
+    label { gap: 6px; }
+    input[type=checkbox] { width: 20px; height: 20px; }
+    footer { padding: 6px 10px; font-size: 12px; }
+    .keyshint { display: none; }
+  }
+  /* Landscape: every pixel of height belongs to the instrument, so the
+   * readout joins the controls on one line instead of taking a row. */
+  @media (max-height: 500px) {
+    header { padding: 5px 10px; gap: 6px; flex-wrap: nowrap; }
+    .controls { order: 1; width: auto; flex: 1 1 auto; }
+    .readout { order: 2; width: auto; flex: 0 0 auto; }
+    .note { font-size: 18px; }
+    .hz, .cents { display: none; }
+    button, select { min-height: 34px; padding: 5px 11px; }
+    input[type=range] { height: 34px; }
+    footer { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Xylophone <span>— play a note and watch it ring</span></h1>
+    <div class="controls">
+    <button id="listen">Listen</button>
+    <button id="demo">Demo</button>
+    <label>From
+      <select id="low">
+        <option value="48">C3</option>
+        <option value="60" selected>C4</option>
+        <option value="36">C2</option>
+      </select>
+    </label>
+    <label>Octaves
+      <select id="octaves">
+        <option>1</option><option selected>2</option><option>3</option>
+      </select>
+    </label>
+    <label>Shape
+      <select id="shape">
+        <option value="auto" selected>Auto (fits the screen)</option>
+        <option value="bars">Upright (chromatic)</option>
+        <option value="ladder">Ladder (toy, white notes)</option>
+      </select>
+    </label>
+    <label title="How loud a sound has to be before it counts">Sensitivity
+      <input type="range" id="gate" min="-70" max="-30" value="-55">
+    </label>
+    <label title="Sound a mallet when a bar is clicked"><input type="checkbox" id="sound" checked> Click to play</label>
+    </div>
+    <span class="spacer"></span>
+    <div class="readout">
+      <span class="note" id="note">—</span>
+      <span class="hz" id="hz"></span>
+      <span class="cents" id="cents"></span>
+    </div>
+  </header>
+
+  <div class="stage"><canvas id="bars"></canvas></div>
+
+  <footer>
+    <span id="status">Press Listen and allow the microphone — or just click the bars.</span>
+    <span class="spacer"></span>
+    <span class="keyshint">Keys <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>… play along</span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ notes */
+
+const NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+const isBlack = (midi) => [1, 3, 6, 8, 10].includes(((midi % 12) + 12) % 12);
+const noteName = (midi) => NAMES[((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1);
+const midiToHz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
+
+/* A toy xylophone's colours, one per step of the scale, repeating by octave. */
+const BAR_COLOURS = ["#e5484d", "#f76b15", "#f5c518", "#8bc34a", "#25b2a5", "#3d8ff5", "#8b5cf6"];
+const WHITE_STEPS = [0, 2, 4, 5, 7, 9, 11];
+
+/* ----------------------------------------------------------- pitch (YIN) */
+/* de Cheveigné & Kawahara 2002. Copied in so this file needs nothing else. */
+
+function detectPitch(buf, sampleRate, minHz = 60, maxHz = 2200, threshold = 0.15, win = 2048) {
+  const tauMin = Math.max(2, Math.floor(sampleRate / maxHz));
+  const tauMax = Math.min(Math.floor(sampleRate / minHz), buf.length - win - 1);
+  if (tauMax <= tauMin) return null;
+
+  const cmnd = new Float32Array(tauMax + 1);
+  cmnd[0] = 1;
+  let running = 0;
+  for (let tau = 1; tau <= tauMax; tau++) {
+    let d = 0;
+    for (let i = 0; i < win; i++) { const v = buf[i] - buf[i + tau]; d += v * v; }
+    running += d;
+    cmnd[tau] = running > 0 ? (d * tau) / running : 1;
+  }
+  let tau = -1;
+  for (let t = tauMin; t <= tauMax; t++) {
+    if (cmnd[t] < threshold) {
+      while (t + 1 <= tauMax && cmnd[t + 1] < cmnd[t]) t++;
+      tau = t; break;
+    }
+  }
+  if (tau < 0) {
+    let best = tauMin;
+    for (let t = tauMin; t <= tauMax; t++) if (cmnd[t] < cmnd[best]) best = t;
+    if (cmnd[best] > 0.5) return null;
+    tau = best;
+  }
+  // A window that is quiet where YIN looks but loud at its end — a strike
+  // caught by its tail — has no pitch in it; silence looks perfectly periodic.
+  const looked = Math.min(buf.length, win + tau);
+  let head = 0, all = 0;
+  for (let i = 0; i < buf.length; i++) { const v = buf[i] * buf[i]; all += v; if (i < looked) head += v; }
+  if (Math.sqrt(head / looked) < Math.sqrt(all / buf.length) * 0.2) return null;
+
+  let period = tau;
+  if (tau > 0 && tau < tauMax) {
+    const a = cmnd[tau - 1], b = cmnd[tau], c = cmnd[tau + 1];
+    const den = a - 2 * b + c;
+    if (den !== 0) period = tau + 0.5 * (a - c) / den;
+  }
+  return { hz: sampleRate / period, clarity: Math.max(0, Math.min(1, 1 - cmnd[tau])) };
+}
+
+function rmsDb(buf) {
+  let s = 0;
+  for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
+  return 20 * Math.log10(Math.sqrt(s / buf.length) + 1e-12);
+}
+
+/* --------------------------------------------------------------- the app */
+
+const $ = (id) => document.getElementById(id);
+const FFT = 4096;
+
+const state = {
+  ctx: null, analyser: null, stream: null, source: null,
+  buf: new Float32Array(FFT),
+  bars: [],                 // { midi, x, y, w, h, colour, hit, phase }
+  low: 60, octaves: 2, shape: "auto", shapeNow: "bars",
+  reading: null,            // { midi, hz, cents, clarity }
+  candidate: null, sounding: null, silent: 0,
+  ripples: [],              // { x, y, r, life, colour }
+  labels: [],               // { x, y, text, life, colour }
+  listening: false, demo: null,
+  raf: null,
+};
+
+/* --------------------------------------------------------------- layout */
+
+/* Bars are laid out like a chromatic xylophone: the naturals in a row, the
+ * accidentals in a shorter row behind and between them. Lower notes get
+ * longer, wider bars, which is what makes it read as a xylophone rather
+ * than a row of buttons. */
+function layout(w, h) {
+  const naturals = [];
+  const total = state.octaves * 12;
+  for (let i = 0; i <= total; i++) {
+    const midi = state.low + i;
+    if (!isBlack(midi)) naturals.push(midi);
+  }
+  const colourOf = (midi) =>
+    BAR_COLOURS[WHITE_STEPS.indexOf(((midi % 12) + 12) % 12) % BAR_COLOURS.length];
+  // Auto: a stage taller than it is wide is a phone held upright, and the
+  // toy ladder is the shape that fits it.
+  state.shapeNow = state.shape === "auto" ? (h > w * 1.1 ? "ladder" : "bars") : state.shape;
+  return state.shapeNow === "ladder"
+    ? ladderLayout(w, h, naturals, colourOf)
+    : uprightLayout(w, h, naturals, colourOf);
+}
+
+/* Upright: a row of bars like a keyboard, naturals in front and accidentals
+ * overlapping the top of them, as on a chromatic xylophone. */
+function uprightLayout(w, h, naturals, colourOf) {
+  const bars = [];
+  const pad = Math.max(12, w * 0.025);
+  const slot = (w - pad * 2) / naturals.length;
+  const barW = Math.min(slot * 0.84, 104);
+
+  // The back row is a fraction of the front row and hangs above it by most of
+  // its length, so those two fractions decide how much height the front row
+  // can have. Solving for it fills a short screen instead of leaving a third
+  // of it empty.
+  const BACK = 0.42, OVERHANG = 0.72;
+  const foot = Math.max(8, h * 0.05);
+  // Never longer than a bar that wide would plausibly be: on a tall desktop
+  // window the row is capped and centred instead of stretching into slats.
+  const frontMax = Math.min((h - foot) / (1 + BACK * OVERHANG), barW * 6);
+  const block = frontMax * (1 + BACK * OVERHANG);
+  const frontTop = (h - block) / 2 + frontMax * BACK * OVERHANG;
+
+  naturals.forEach((midi, i) => {
+    const t = naturals.length > 1 ? i / (naturals.length - 1) : 0;
+    const len = frontMax * (1 - 0.34 * t);          // shorter as it rises
+    bars.push({
+      midi, x: pad + i * slot + (slot - barW) / 2, y: frontTop, w: barW, h: len,
+      colour: colourOf(midi), hit: 0, row: "front",
+    });
+  });
+
+  for (let i = 0; i < naturals.length - 1; i++) {
+    const midi = naturals[i] + 1;
+    if (!isBlack(midi)) continue;
+    const t = i / Math.max(1, naturals.length - 1);
+    const len = frontMax * BACK * (1 - 0.3 * t);
+    const bw = barW * 0.74;
+    bars.push({
+      midi, x: pad + (i + 0.5) * slot + (slot - bw) / 2,
+      y: frontTop - len * OVERHANG,                  // overlapping the front row
+      w: bw, h: len, colour: "#26313f", hit: 0, row: "back",
+    });
+  }
+  return bars;
+}
+
+/* Ladder: the toy. Horizontal bars, longest at the top, white notes only —
+ * which is what a toy xylophone has. */
+function ladderLayout(w, h, naturals, colourOf) {
+  const bars = [];
+  const padY = Math.max(10, h * 0.04);
+  const slot = (h - padY * 2) / naturals.length;
+  const barH = Math.min(slot * 0.78, 46);
+  const longest = Math.min(w * 0.82, 900);
+
+  naturals.forEach((midi, i) => {
+    const t = naturals.length > 1 ? i / (naturals.length - 1) : 0;
+    const len = longest * (1 - 0.45 * t);
+    bars.push({
+      midi, x: (w - len) / 2, y: padY + i * slot + (slot - barH) / 2,
+      w: len, h: barH, colour: colourOf(midi), hit: 0, row: "front",
+    });
+  });
+  return bars;
+}
+
+function fit() {
+  const canvas = $("bars");
+  const box = canvas.parentElement;
+  const w = Math.max(1, box.clientWidth), h = Math.max(1, box.clientHeight);
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  // The CSS size is written out: a canvas carries its backing store in a
+  // height attribute, and that would otherwise decide its layout size.
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  const g = canvas.getContext("2d");
+  g.setTransform(canvas.width / w, 0, 0, canvas.height / h, 0, 0);
+  state.bars = layout(w, h);
+  return [g, w, h];
+}
+
+/* -------------------------------------------------------------- drawing */
+
+function roundRect(g, x, y, w, h, r) {
+  const rr = Math.max(0, Math.min(r, w / 2, h / 2));
+  g.beginPath();
+  g.moveTo(x + rr, y); g.lineTo(x + w - rr, y); g.quadraticCurveTo(x + w, y, x + w, y + rr);
+  g.lineTo(x + w, y + h - rr); g.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+  g.lineTo(x + rr, y + h); g.quadraticCurveTo(x, y + h, x, y + h - rr);
+  g.lineTo(x, y + rr); g.quadraticCurveTo(x, y, x + rr, y); g.closePath();
+}
+
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, Math.round(((n >> 16) & 255) * f));
+  const g = Math.min(255, Math.round(((n >> 8) & 255) * f));
+  const b = Math.min(255, Math.round((n & 255) * f));
+  return `rgb(${r},${g},${b})`;
+}
+
+function draw(g, w, h) {
+  g.clearRect(0, 0, w, h);
+
+  // The frame: two rails the bars rest on, along whichever way they run.
+  const front = state.bars.filter((b) => b.row === "front");
+  const ladder = state.shapeNow === "ladder";
+  if (front.length) {
+    g.strokeStyle = "#1b242c"; g.lineWidth = 6; g.lineCap = "round";
+    const first = front[0], last = front[front.length - 1];
+    // Through the holes of every bar, so the rails follow the shape rather
+    // than hanging in the air past the shorter ones.
+    const rails = ladder ? [0.14, 0.86] : [0.18, 0.84];
+    for (const f of rails) {
+      g.beginPath();
+      front.forEach((bar, i) => {
+        const px = ladder ? bar.x + bar.w * f : bar.x + bar.w / 2;
+        const py = ladder ? bar.y + bar.h / 2 : bar.y + bar.h * f;
+        i ? g.lineTo(px, py) : g.moveTo(px, py);
+      });
+      g.stroke();
+    }
+  }
+
+  for (const bar of state.bars) {
+    const hit = bar.hit;                      // 1 just struck, decaying to 0
+    const dip = hit * 4;
+    const x = bar.x, y = bar.y + dip, bw = bar.w, bh = bar.h;
+    void ladder;
+
+    if (hit > 0.01) {                          // halo under a ringing bar
+      g.save();
+      g.shadowColor = bar.row === "front" ? bar.colour : "#6ea8ff";
+      g.shadowBlur = 28 * hit;
+      g.fillStyle = bar.row === "front" ? bar.colour : "#33435a";
+      roundRect(g, x, y, bw, bh, 9); g.fill();
+      g.restore();
+    }
+
+    const base = bar.row === "front" ? bar.colour : "#243040";
+    const grad = g.createLinearGradient(x, y, x + bw, y);
+    grad.addColorStop(0, shade(base, 0.72));
+    grad.addColorStop(0.35, shade(base, 1 + 0.55 * hit));
+    grad.addColorStop(1, shade(base, 0.6));
+    g.fillStyle = grad;
+    roundRect(g, x, y, bw, bh, 9); g.fill();
+
+    // A highlight along the bar, brighter while ringing.
+    g.fillStyle = `rgba(255,255,255,${0.10 + 0.45 * hit})`;
+    if (ladder) roundRect(g, x + 5, y + bh * 0.16, Math.max(3, bw * 0.02), bh * 0.68, 3);
+    else roundRect(g, x + bw * 0.12, y + 4, bw * 0.76, Math.max(3, bh * 0.05), 3);
+    g.fill();
+
+    // The two holes the cord passes through.
+    g.fillStyle = "rgba(0,0,0,0.45)";
+    const holes = ladder
+      ? [[x + bw * 0.14, y + bh / 2], [x + bw * 0.86, y + bh / 2]]
+      : [[x + bw / 2, y + bh * 0.18], [x + bw / 2, y + bh * 0.84]];
+    const holeR = Math.max(1.6, (ladder ? bh : bw) * 0.09);
+    for (const [hx, hy] of holes) {
+      g.beginPath(); g.arc(hx, hy, holeR, 0, Math.PI * 2); g.fill();
+    }
+
+    // Its name, kept legible on both rows and both shapes.
+    g.fillStyle = bar.row === "front" ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.55)";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    if (ladder) {
+      g.font = `700 ${Math.max(10, Math.min(18, bh * 0.5))}px "Segoe UI", system-ui, sans-serif`;
+      g.fillText(noteName(bar.midi), x + bw * 0.5, y + bh / 2);
+    } else {
+      // Between the two holes, where there is room for it at any bar length.
+      g.font = `600 ${Math.max(10, Math.min(16, bw * 0.34))}px "Segoe UI", system-ui, sans-serif`;
+      g.fillText(noteName(bar.midi), x + bw / 2, y + bh * 0.51);
+    }
+    g.textBaseline = "alphabetic";
+
+    bar.hit *= 0.90;                           // ring down
+  }
+
+  // Ripples where a bar was struck.
+  for (const r of state.ripples) {
+    g.strokeStyle = r.colour;
+    g.globalAlpha = Math.max(0, r.life);
+    g.lineWidth = 2.5;
+    g.beginPath(); g.arc(r.x, r.y, r.r, 0, Math.PI * 2); g.stroke();
+    r.r += 3.2; r.life -= 0.035;
+  }
+  g.globalAlpha = 1;
+  state.ripples = state.ripples.filter((r) => r.life > 0);
+
+  // Note names floating up from the strike.
+  for (const l of state.labels) {
+    g.globalAlpha = Math.max(0, l.life);
+    g.fillStyle = l.colour;
+    g.font = `700 ${22 + 10 * (1 - l.life)}px "Segoe UI", system-ui, sans-serif`;
+    g.textAlign = "center";
+    g.fillText(l.text, l.x, l.y);
+    l.y -= 1.1; l.life -= 0.02;
+  }
+  g.globalAlpha = 1;
+  state.labels = state.labels.filter((l) => l.life > 0);
+}
+
+/* --------------------------------------------------------------- strike */
+
+function barFor(midi) { return state.bars.find((b) => b.midi === midi) || null; }
+
+function strike(midi, fromClick) {
+  const bar = barFor(midi);
+  if (bar) {
+    bar.hit = 1;
+    state.ripples.push({ x: bar.x + bar.w / 2, y: bar.y + bar.h / 2, r: bar.w * 0.4,
+      life: 1, colour: bar.row === "front" ? bar.colour : "#6ea8ff" });
+    state.labels.push({ x: bar.x + bar.w / 2, y: bar.y - 10, text: noteName(midi),
+      life: 1, colour: bar.row === "front" ? bar.colour : "#8fb6ff" });
+  }
+  if (fromClick && $("sound").checked) mallet(midi);
+}
+
+/* A mallet: a bright partial over a fundamental, decaying fast. */
+function mallet(midi) {
+  const ctx = audio();
+  const now = ctx.currentTime;
+  const out = ctx.createGain();
+  out.gain.setValueAtTime(0.0001, now);
+  out.gain.exponentialRampToValueAtTime(0.35, now + 0.005);
+  out.gain.exponentialRampToValueAtTime(0.0001, now + 1.1);
+  out.connect(ctx.destination);
+  for (const [mult, level] of [[1, 1], [4.01, 0.28], [9.2, 0.1]]) {
+    const osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = midiToHz(midi) * mult;
+    g.gain.value = level;
+    osc.connect(g); g.connect(out);
+    osc.start(now);
+    osc.stop(now + 1.2);
+  }
+}
+
+function audio() {
+  if (!state.ctx) state.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (state.ctx.state === "suspended") state.ctx.resume();
+  return state.ctx;
+}
+
+/* -------------------------------------------------------------- listening */
+
+async function startListening() {
+  const ctx = audio();
+  if (!state.analyser) {
+    state.analyser = ctx.createAnalyser();
+    state.analyser.fftSize = FFT;
+    state.analyser.smoothingTimeConstant = 0;
+  }
+  state.stream = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+  });
+  state.source = ctx.createMediaStreamSource(state.stream);
+  state.source.connect(state.analyser);
+  state.listening = true;
+  $("listen").classList.add("on");
+  $("listen").textContent = "Listening";
+  const track = state.stream.getAudioTracks()[0];
+  say(`Listening on "${track.label || "microphone"}". Play, sing or whistle a note.`);
+}
+
+function stopListening() {
+  if (state.source) { try { state.source.disconnect(); } catch (_) { /* gone */ } state.source = null; }
+  if (state.stream) { for (const t of state.stream.getTracks()) t.stop(); state.stream = null; }
+  state.listening = false;
+  state.reading = null;
+  $("listen").classList.remove("on");
+  $("listen").textContent = "Listen";
+  say("Stopped. Click the bars, or press Listen again.");
+}
+
+/* One analysis, turned into a strike when the same note holds for a few
+ * frames — otherwise every wobble would light a different bar. */
+function analyse() {
+  if (!state.analyser) return;
+  state.analyser.getFloatTimeDomainData(state.buf);
+  const db = rmsDb(state.buf);
+  let midi = null;
+  if (db > parseFloat($("gate").value)) {
+    const p = detectPitch(state.buf, state.ctx.sampleRate);
+    if (p && p.clarity >= 0.6) {
+      const exact = 69 + 12 * Math.log2(p.hz / 440);
+      midi = Math.round(exact);
+      state.reading = { midi, hz: p.hz, cents: (exact - midi) * 100, clarity: p.clarity };
+    }
+  }
+  if (midi === null) {
+    state.candidate = null;
+    if (state.sounding !== null && ++state.silent >= 4) { state.sounding = null; state.reading = null; }
+    return;
+  }
+  state.silent = 0;
+  if (midi === state.sounding) return;                 // already ringing
+  if (state.candidate && state.candidate.midi === midi) state.candidate.count++;
+  else state.candidate = { midi, count: 1 };
+  if (state.candidate.count >= 2) {
+    state.sounding = midi;
+    state.candidate = null;
+    strike(midi, false);
+  }
+}
+
+function showReading() {
+  const r = state.reading;
+  $("note").textContent = r ? noteName(r.midi) : "—";
+  $("note").style.color = r && barFor(r.midi) ? (barFor(r.midi).colour) : "var(--ink)";
+  $("hz").textContent = r ? r.hz.toFixed(1) + " Hz" : "";
+  $("cents").textContent = r ? `${r.cents >= 0 ? "+" : ""}${r.cents.toFixed(0)} ¢` : "";
+  $("cents").style.color = r ? (Math.abs(r.cents) <= 12 ? "#46d7a1" : Math.abs(r.cents) <= 30 ? "#e9b44c" : "#f08079") : "";
+}
+
+/* ------------------------------------------------------------------ demo */
+
+/* Something to look at without a microphone: a little tune up and down. */
+function toggleDemo() {
+  if (state.demo) {
+    clearInterval(state.demo); state.demo = null;
+    $("demo").classList.remove("on");
+    return;
+  }
+  const naturals = state.bars.filter((b) => b.row === "front").map((b) => b.midi);
+  if (!naturals.length) return;
+  const tune = [0, 2, 4, 2, 0, 4, 3, 2, 1, 2, 3, 4, 2, 0].map((i) => naturals[i % naturals.length]);
+  let i = 0;
+  $("demo").classList.add("on");
+  state.demo = setInterval(() => {
+    strike(tune[i % tune.length], true);
+    i++;
+  }, 320);
+}
+
+/* ------------------------------------------------------------------ wire */
+
+function say(text) { $("status").textContent = text; }
+
+function frame() {
+  const canvas = $("bars");
+  const box = canvas.parentElement;
+  if (canvas.clientWidth !== box.clientWidth || canvas.clientHeight !== box.clientHeight) fit();
+  const g = canvas.getContext("2d");
+  if (state.listening) { analyse(); showReading(); }
+  draw(g, box.clientWidth, box.clientHeight);
+  state.raf = requestAnimationFrame(frame);
+}
+
+function barAt(x, y) {
+  // The back row is drawn first but sits above; test it first.
+  const rows = [state.bars.filter((b) => b.row === "back"), state.bars.filter((b) => b.row === "front")];
+  for (const row of rows) {
+    for (const b of row) if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return b;
+  }
+  return null;
+}
+
+function rebuild() {
+  state.low = parseInt($("low").value, 10);
+  state.octaves = parseInt($("octaves").value, 10);
+  state.shape = $("shape").value;
+  fit();
+}
+
+function wire() {
+  fit();
+  $("listen").onclick = async () => {
+    if (state.listening) { stopListening(); return; }
+    try { await startListening(); }
+    catch (e) {
+      say(e.name === "NotAllowedError"
+        ? "The microphone was refused. Allow it in the address bar — or open this page from a local server if it is a file:// URL."
+        : "Could not open the microphone: " + e.message);
+    }
+  };
+  $("demo").onclick = () => toggleDemo();
+  $("low").onchange = rebuild;
+  $("octaves").onchange = rebuild;
+  $("shape").onchange = rebuild;
+
+  const canvas = $("bars");
+  const hit = (e) => {
+    e.preventDefault();                       // no scrolling, no text selection
+    const r = canvas.getBoundingClientRect();
+    const b = barAt(e.clientX - r.left, e.clientY - r.top);
+    if (b) strike(b.midi, true);
+  };
+  canvas.addEventListener("pointerdown", hit);
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+  // A row of computer keys, so it can be played without anything else.
+  const keys = "awsedftgyhujkolp;".split("");
+  window.addEventListener("keydown", (e) => {
+    if (e.repeat || e.metaKey || e.ctrlKey) return;
+    const i = keys.indexOf(e.key.toLowerCase());
+    if (i < 0) return;
+    const bar = state.bars.slice().sort((a, b) => a.midi - b.midi)[i];
+    if (bar) strike(bar.midi, true);
+  });
+
+  let refit = 0;
+  const refitSoon = () => { clearTimeout(refit); refit = setTimeout(fit, 120); };
+  window.addEventListener("resize", () => { fit(); refitSoon(); });
+  window.addEventListener("orientationchange", refitSoon);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", refitSoon);
+
+  // A phone screen holds fewer bars comfortably, so it starts with one octave.
+  if (Math.min(window.innerWidth, window.innerHeight) < 520) {
+    $("octaves").value = "1";
+    rebuild();
+  }
+  frame();
+}
+
+wire();
+
+// Handy from the console, and what the checks in the repo drive.
+window.xylo = { state, strike, detectPitch, layout, barFor, startListening, stopListening };
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@
     python tools/serve_web.py            # serves web/ on http://127.0.0.1:8765
     python tools/serve_web.py --dist     # serves dist/ instead
     python tools/serve_web.py --listen   # serves listen/ (Danas Ear, microphone allowed)
+    python tools/serve_web.py --xylo     # serves xylo/ (the xylophone, microphone allowed)
 
 It sends the same Content-Security-Policy and related headers as
 deploy/Caddyfile, so anything that would break under the real CSP breaks
@@ -17,6 +18,9 @@ import http.server
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# The two standalone apps that live beside the tutor and want a microphone.
+SIDE_APPS = ("listen", "xylo")
 
 HEADERS = {
     "Content-Security-Policy": (
@@ -41,16 +45,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     }
 
     def translate_path(self, path: str) -> str:
-        # Danas Ear lives beside the tutor at /listen/ (as in dist/ and the Caddyfile).
+        # The side apps live beside the tutor (as in dist/ and the Caddyfile).
         clean = path.split("?", 1)[0].split("#", 1)[0]
-        if clean == "/listen" or clean.startswith("/listen/"):
-            rel = clean[len("/listen"):].lstrip("/") or "index.html"
-            return str(ROOT / "listen" / rel)
+        for app in SIDE_APPS:
+            if clean == f"/{app}" or clean.startswith(f"/{app}/"):
+                rel = clean[len(app) + 1:].lstrip("/") or "index.html"
+                return str(ROOT / app / rel)
         return super().translate_path(path)
 
     def end_headers(self) -> None:
         for k, v in HEADERS.items():
-            if k == "Permissions-Policy" and self.path.startswith("/listen"):
+            if k == "Permissions-Policy" and any(self.path.startswith(f"/{a}") for a in SIDE_APPS):
                 v = v.replace("microphone=()", "microphone=(self)")
             self.send_header(k, v)
         super().end_headers()
@@ -64,13 +69,15 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dist", action="store_true")
     ap.add_argument("--listen", action="store_true", help="serve the Danas Ear pitch listener instead of the tutor")
+    ap.add_argument("--xylo", action="store_true", help="serve the xylophone instead of the tutor")
     ap.add_argument("--port", type=int, default=8765)
     args = ap.parse_args()
-    directory = ROOT / ("listen" if args.listen else "dist" if args.dist else "web")
-    if args.listen:
+    alone = "listen" if args.listen else "xylo" if args.xylo else None
+    directory = ROOT / (alone or ("dist" if args.dist else "web"))
+    if alone:
         HEADERS["Permissions-Policy"] = HEADERS["Permissions-Policy"].replace("microphone=()", "microphone=(self)")
     else:
-        print("Danas Ear is at /listen/")
+        print("Danas Ear is at /listen/, the xylophone at /xylo/")
     handler = functools.partial(Handler, directory=str(directory))
     with http.server.ThreadingHTTPServer(("127.0.0.1", args.port), handler) as httpd:
         print(f"serving {directory} at http://127.0.0.1:{args.port}/ with production headers")

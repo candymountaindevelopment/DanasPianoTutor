@@ -152,6 +152,19 @@ http://127.0.0.1:8765/listen/ (`--listen` serves it alone at the root).
 It is deployed beside the tutor at `/listen/` (the Caddyfile relaxes the
 microphone policy for that path only). The same detector powers the tutor's Practice tab.
 
+### The xylophone — seeing what is played
+
+`xylo/index.html` is one file that needs nothing else: play a note into the
+microphone, press a computer key or click a bar, and the bar dips, rings and
+sends out a ripple. Two shapes — an upright chromatic instrument with the
+accidentals overlapping the naturals, and the toy ladder in rainbow colours —
+over one to three octaves from C2, C3 or C4 — *Auto* picks the shape from
+the screen, so a phone held upright gets the ladder — with its own mallet synthesiser
+and its own copy of the YIN detector. Nothing is shared with the tutor, so it
+can be copied anywhere and opened on its own; the dev server has it at
+http://127.0.0.1:8765/xylo/ (`--xylo` serves it alone) and it is deployed at
+`/xylo/`. Details in [xylo/README.md](xylo/README.md).
+
 Fingers you do not write are inferred from the hand position, so a beginner
 piece needs a finger on the first note, on position changes and on chords —
 the way printed method books do it. The specification for a chatbot is

@@ -25,9 +25,10 @@ http://127.0.0.1:8080 {
 		-Server
 	}
 
-	# Danas Ear at /listen/ needs the microphone; nothing else does.
-	@listen path /listen /listen/*
-	header @listen Permissions-Policy "camera=(), microphone=(self), geolocation=(), payment=(), usb=(), midi=(self)"
+	# Danas Ear at /listen/ and the xylophone at /xylo/ need the microphone;
+	# nothing else does.
+	@mic path /listen /listen/* /xylo /xylo/*
+	header @mic Permissions-Policy "camera=(), microphone=(self), geolocation=(), payment=(), usb=(), midi=(self)"
 
 	# Long-lived, content-addressed things; the rest re-validates.
 	@immutable path /vendor/* /core.zip /assets/tutor_splash.jpg

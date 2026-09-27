@@ -44,6 +44,8 @@ BRAVURA_LICENSE_URL = "https://github.com/steinbergmedia/bravura/raw/master/LICE
 
 EXCLUDE_PACKAGES = ("raw/ui/", "raw/app/")
 MAX_FILE_MB = 20
+# Standalone browser apps served beside the tutor (see tools/serve_web.py).
+SIDE_APPS = ("listen", "xylo")
 
 
 def build_core_zip() -> Path:
@@ -200,13 +202,15 @@ def write_precache() -> None:
     files += sorted(p.relative_to(WEB).as_posix() for p in (WEB / "src").glob("*.js"))
     files += sorted(p.relative_to(WEB).as_posix() for p in (WEB / "assets").iterdir() if p.is_file())
     files += sorted(p.relative_to(WEB).as_posix() for p in (WEB / "lessons").glob("*.json"))
-    files += sorted("listen/" + p.name for p in (ROOT / "listen").iterdir() if p.is_file())
+    for app in SIDE_APPS:
+        files += sorted(f"{app}/" + p.name for p in (ROOT / app).iterdir()
+                        if p.is_file() and p.suffix != ".md")
     vendor = WEB / "vendor"
     if vendor.exists():
         files += sorted(p.relative_to(WEB).as_posix() for p in vendor.rglob("*") if p.is_file() and p.suffix != ".txt")
     digest = hashlib.sha256()
     for rel in files:
-        path = (ROOT / rel) if rel.startswith("listen/") else (WEB / rel)
+        path = (ROOT / rel) if rel.split("/", 1)[0] in SIDE_APPS else (WEB / rel)
         if path.is_file():
             digest.update(rel.encode())
             digest.update(path.read_bytes())
@@ -222,8 +226,11 @@ def make_dist() -> None:
     if DIST.exists():
         shutil.rmtree(DIST)
     shutil.copytree(WEB, DIST, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", "Thumbs.db"))
-    # Danas Ear (the microphone pitch listener) ships beside the tutor at /listen/.
-    shutil.copytree(ROOT / "listen", DIST / "listen", ignore=shutil.ignore_patterns("__pycache__", ".DS_Store", "Thumbs.db"))
+    # The standalone apps ship beside the tutor: the pitch listener at
+    # /listen/, the xylophone at /xylo/. Their READMEs stay in the repository.
+    for app in SIDE_APPS:
+        shutil.copytree(ROOT / app, DIST / app,
+                        ignore=shutil.ignore_patterns("__pycache__", ".DS_Store", "Thumbs.db", "*.md"))
     bad = []
     for path in DIST.rglob("*"):
         if path.is_dir():

@@ -1231,6 +1231,53 @@ and piano resonance in a live room narrows the usable gate range. MIDI input
 (Web MIDI, already allowed by `midi=(self)`) would remove all three and is the
 natural next step.
 
+## 14.8 The xylophone (`xylo/index.html`)
+
+One file, and deliberately so: inlined styles, its own copy of the YIN
+detector, its own mallet synthesiser, no imports, no fetches and no shared
+state with the tutor. It can be copied anywhere and opened on its own; the
+only reason it is served at `/xylo/` (and precached, and given
+`microphone=(self)`) is that browsers will not open a microphone from a
+`file://` page.
+
+**Bars.** `layout(w, h)` builds one of two shapes from the same note list.
+*Upright* is chromatic: the naturals in a row, the accidentals three quarters
+of their own length higher so they overlap the front row, as on a real
+instrument. The front row's length is solved from the stage rather than
+fixed — the accidentals' overhang is a known fraction of it, so
+`frontMax = (h - foot) / (1 + 0.42 × 0.72)` fills a short screen — then
+capped at six times the bar width and centred, so a tall window gets a
+xylophone rather than a set of slats. *Ladder* is the toy: horizontal bars,
+longest at the top, white notes only. *Auto* picks by proportion — a stage
+taller than it is wide is a phone held upright, where the ladder is the shape
+that fits. The rails and the cord holes follow the bars, which is what makes
+the drawing read as an instrument.
+
+**Striking.** `strike(midi)` sets `bar.hit = 1`, which decays by `× 0.90` a
+frame and drives the dip, the halo, the ripple and the floating name. Input
+is a pointer (multi-touch, `touch-action: none`), the computer keys
+`a w s e d f t g y h u j k o l p`, the demo tune, or the microphone.
+
+**Hearing.** The same YIN as `listen/pitch.js`: 4096-sample windows,
+threshold 0.15, clarity ≥ 0.6, 60–2200 Hz, plus a gate the *Sensitivity*
+slider moves between −70 and −30 dB. Two rules keep it from flickering
+through a row of bars: a note is struck only when two consecutive frames
+agree, and a window that is quiet where YIN looks but loud at its end — a
+strike caught by its tail — is discarded, because digital silence is
+perfectly periodic and reads as a confident low note.
+
+**Phones.** One stylesheet block at `max-width: 760px` **or**
+`max-height: 500px` turns the controls into a strip that scrolls sideways
+(Listen and Demo at its head, always in reach), grows the targets to 40 px,
+drops the title and the keyboard hint, and keeps the status line, which is
+where a refused microphone is explained. A second block for
+`max-height: 500px` — a phone in landscape — puts the readout back on the
+control row and trims the chrome to give the instrument the height. The stage
+is `100dvh` with safe-area insets, the canvas is refitted on `resize`,
+`orientationchange` and `visualViewport` resize (debounced, because a phone
+reports the turn before it has finished animating it), and a screen whose
+short side is under 520 px starts with one octave.
+
 ## 15. User interface (`raw/ui`)
 
 ### 15.1 Window layout
