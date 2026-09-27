@@ -23,6 +23,10 @@ the published build.
 
 ## What it does
 
+- **Play** runs a tune. The notes come in from the right along a lane under
+  the instrument, and a ball leaps from note to note, landing on each one at
+  the moment it sounds — so the jump is the count-in for the note. Play along
+  and the notes you get right turn green.
 - **Listen** opens the microphone and strikes whichever bar is sounding. It
   waits for two consecutive frames of the same note before striking, so a
   wobble in the voice does not set off a row of bars.
@@ -30,17 +34,19 @@ the published build.
   inharmonic partials, decaying in about a second.
 - **The computer keys** `a w s e d f t g y h u j k o l p` play the bars from
   the bottom up.
-- **Demo** plays a short tune, so the thing can be watched with no microphone
-  at all.
+Four tunes are built in — *Twinkle, Twinkle*, *Mary Had a Little Lamb*,
+*Ode to Joy* and a scale up and down — at three speeds. They are written as
+steps above the instrument's lowest bar, so moving **From** transposes them.
 
 ## The controls
 
 | | |
 |---|---|
-| **From / Octaves** | where the instrument starts and how much of it there is |
+| **Tune / Speed** | what the ball bounces along, and how fast it comes |
+| **From / Octaves** | where the instrument starts and how much of it there is; the tune follows |
 | **Shape** | *Auto* picks by the shape of the screen; *Upright* is chromatic, with the accidentals overlapping the naturals as on a real xylophone; *Ladder* is the toy — white notes, longest bar at the top |
 | **Sensitivity** | how loud a sound has to be before it counts, from −70 dB (twitchy) to −30 dB (only deliberate notes) |
-| **Click to play** | whether clicking a bar makes a sound as well as a flash |
+| **Sound** | whether a struck bar — by hand or by the tune — makes a sound as well as a flash |
 
 ## On a phone
 
@@ -52,6 +58,24 @@ small screen starts with one octave. Rotating refits the drawing. The catch
 is the microphone: a browser will only open one on a page served over
 `https://` or from `localhost`, so on a phone this wants the deployed copy at
 `/xylo/` rather than a file.
+
+## How the ball keeps time
+
+The beat is read from the audio context's own clock, not from a timer: at
+every frame `beat = (currentTime - t0) × bpm / 60`. Notes are handed to the
+audio scheduler a quarter of a second early, so they sound exactly on the
+beat, and the bar is struck when that moment actually arrives. The lane draws
+each note at `nowX + (beat_note - beat_now) × pixels-per-beat`, and the ball's
+arc runs between the positions of the note it left and the note it is going
+to. Because those are the same numbers, the landing cannot drift away from
+the sound.
+
+Both ends of the arc scroll leftwards at the same rate, so interpolating them
+evenly would leave the ball hanging over the now line. It leaves fast and
+arrives slowly instead — `1 - (1 - t)⁴` — which makes it leap forward onto
+the note coming in and ride it down; the ease still ends at exactly 1, so the
+landing is still the note's own moment. A page that is not on screen is not
+animated, so the tune waits for it rather than running on in silence.
 
 ## How it hears
 

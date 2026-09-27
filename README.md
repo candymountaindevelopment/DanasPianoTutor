@@ -156,7 +156,9 @@ microphone policy for that path only). The same detector powers the tutor's Prac
 
 `xylo/index.html` is one file that needs nothing else: play a note into the
 microphone, press a computer key or click a bar, and the bar dips, rings and
-sends out a ripple. Two shapes — an upright chromatic instrument with the
+sends out a ripple. **Play** runs a tune along a lane underneath, with a ball
+that leaps from note to note and lands on each one as it sounds; play along
+and the notes you get right turn green. Two shapes — an upright chromatic instrument with the
 accidentals overlapping the naturals, and the toy ladder in rainbow colours —
 over one to three octaves from C2, C3 or C4 — *Auto* picks the shape from
 the screen, so a phone held upright gets the ladder — with its own mallet synthesiser

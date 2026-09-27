@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.10.0",
+    "version": "1.11.0",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -231,7 +231,7 @@
       {
         "area": "xylo",
         "state": "done",
-        "feature": "The xylophone: a standalone one-file app that strikes the bar for whatever note it hears, with two shapes (upright chromatic with overlapping accidentals, toy ladder in rainbow colours), 1–3 octaves from C2/C3/C4, a mallet synthesiser, computer-key and click input, a sensitivity gate and a demo tune; phone layouts for portrait and landscape",
+        "feature": "The xylophone: a standalone one-file app that strikes the bar for whatever note it hears, with two shapes (upright chromatic with overlapping accidentals, toy ladder in rainbow colours), 1–3 octaves from C2/C3/C4, a mallet synthesiser, computer-key and click input, a sensitivity gate and a demo tune; phone layouts for portrait and landscape; four tunes running along a lane under the instrument with a ball that lands on each note as it sounds, and green tiles for the notes played along with",
         "notes": "xylo/index.html — inlined styles, its own copy of the YIN detector and no imports at all; served at /xylo/ by tools/serve_web.py and in dist/, with the microphone allowed on that path only"
       }
     ],
@@ -838,6 +838,19 @@
         "A note is struck only after two consecutive frames agree, and a window that is quiet where YIN looks but loud at its end is discarded — digital silence is perfectly periodic and would otherwise read as a confident low note.",
         "Phones, portrait and landscape: Auto picks the shape from the proportions of the stage (ladder upright, upright instrument on its side), the controls become a sideways-scrolling strip with 40 px targets, the canvas takes multi-touch and stops the page scrolling under a finger, a small screen starts with one octave, and the drawing is refitted on rotation.",
         "tools/serve_web.py and tools/build_web.py now carry the standalone apps in one table (SIDE_APPS), so /listen/ and /xylo/ are routed, precached, copied to dist/ and granted the microphone the same way."
+      ]
+    },
+    {
+      "date": "2026-09-27",
+      "version": "1.11.0",
+      "type": "feature",
+      "summary": "A tune under the xylophone, and a ball on every note",
+      "changes": [
+        "Play runs one of four tunes (Twinkle, Mary Had a Little Lamb, Ode to Joy, a scale) at three speeds along a lane under the instrument: tiles come in from the right, and a ball leaps from note to note, landing on each one at the moment it sounds and ringing that bar.",
+        "The beat is the audio context's own clock. Notes are scheduled a quarter-second early and the bar is struck when that moment arrives; the lane and the ball are drawn from the same beat, so the landing cannot drift from the sound — measured at zero pixels' offset from the now line at every landing.",
+        "Both ends of the ball's arc scroll at the same rate, so an even interpolation held it still over the now line; an asymmetric ease (1 - (1 - t)^4) makes it leap forward onto the note coming in and still land exactly on the beat.",
+        "Tunes are written as steps above the lowest bar, so From transposes them; striking the right note within 0.45 beats turns its tile green; a hidden page pauses the tune instead of letting it run on unwatched, and notes more than 0.25 s late are dropped rather than fired in a heap.",
+        "The old setInterval demo is gone, and the sound switch now covers the tune as well as struck bars."
       ]
     }
   ]

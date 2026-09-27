@@ -101,7 +101,22 @@
     <h1>Xylophone <span>— play a note and watch it ring</span></h1>
     <div class="controls">
     <button id="listen">Listen</button>
-    <button id="demo">Demo</button>
+    <button id="play">Play</button>
+    <label>Tune
+      <select id="tune">
+        <option value="twinkle" selected>Twinkle, Twinkle</option>
+        <option value="mary">Mary Had a Little Lamb</option>
+        <option value="joy">Ode to Joy</option>
+        <option value="scale">Up and down</option>
+      </select>
+    </label>
+    <label>Speed
+      <select id="speed">
+        <option value="72">Slow</option>
+        <option value="96" selected>Steady</option>
+        <option value="126">Quick</option>
+      </select>
+    </label>
     <label>From
       <select id="low">
         <option value="48">C3</option>
@@ -124,7 +139,7 @@
     <label title="How loud a sound has to be before it counts">Sensitivity
       <input type="range" id="gate" min="-70" max="-30" value="-55">
     </label>
-    <label title="Sound a mallet when a bar is clicked"><input type="checkbox" id="sound" checked> Click to play</label>
+    <label title="Sound the mallet when a bar is struck or a tune is played"><input type="checkbox" id="sound" checked> Sound</label>
     </div>
     <span class="spacer"></span>
     <div class="readout">
@@ -137,7 +152,7 @@
   <div class="stage"><canvas id="bars"></canvas></div>
 
   <footer>
-    <span id="status">Press Listen and allow the microphone — or just click the bars.</span>
+    <span id="status">Press Play to follow the ball, or Listen and allow the microphone — or just click the bars.</span>
     <span class="spacer"></span>
     <span class="keyshint">Keys <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>… play along</span>
   </footer>
@@ -223,9 +238,19 @@ const state = {
   candidate: null, sounding: null, silent: 0,
   ripples: [],              // { x, y, r, life, colour }
   labels: [],               // { x, y, text, life, colour }
-  listening: false, demo: null,
+  listening: false,
+  tune: null,               // { name, notes: [{ step, midi, beat, beats }], beats }
+  play: null,               // { t0, beat } — the beat clock, read from the audio context
+  bpm: 96, laneH: 0,
   raf: null,
 };
+
+/* The colour a note is given wherever it appears: on its bar, on its tile in
+ * the lane, and in the ripple it throws. */
+function colourFor(midi) {
+  const step = WHITE_STEPS.indexOf(((midi % 12) + 12) % 12);
+  return step < 0 ? "#4a5765" : BAR_COLOURS[step % BAR_COLOURS.length];
+}
 
 /* --------------------------------------------------------------- layout */
 
@@ -240,8 +265,7 @@ function layout(w, h) {
     const midi = state.low + i;
     if (!isBlack(midi)) naturals.push(midi);
   }
-  const colourOf = (midi) =>
-    BAR_COLOURS[WHITE_STEPS.indexOf(((midi % 12) + 12) % 12) % BAR_COLOURS.length];
+  const colourOf = colourFor;
   // Auto: a stage taller than it is wide is a phone held upright, and the
   // toy ladder is the shape that fits it.
   state.shapeNow = state.shape === "auto" ? (h > w * 1.1 ? "ladder" : "bars") : state.shape;
@@ -327,7 +351,9 @@ function fit() {
   canvas.height = Math.round(h * dpr);
   const g = canvas.getContext("2d");
   g.setTransform(canvas.width / w, 0, 0, canvas.height / h, 0, 0);
-  state.bars = layout(w, h);
+  // While a tune is running it takes a band along the bottom for its lane.
+  state.laneH = state.play ? Math.max(84, Math.min(170, h * 0.3)) : 0;
+  state.bars = layout(w, h - state.laneH);
   return [g, w, h];
 }
 
@@ -452,11 +478,215 @@ function draw(g, w, h) {
   state.labels = state.labels.filter((l) => l.life > 0);
 }
 
+/* ---------------------------------------------------------------- tunes */
+
+/* Written as steps above the instrument's lowest note, so a tune follows the
+ * From setting instead of being pinned to one key. [step, beats]. */
+const TUNES = {
+  twinkle: {
+    name: "Twinkle, Twinkle",
+    notes: [[0, 1], [0, 1], [7, 1], [7, 1], [9, 1], [9, 1], [7, 2],
+            [5, 1], [5, 1], [4, 1], [4, 1], [2, 1], [2, 1], [0, 2]],
+  },
+  mary: {
+    name: "Mary Had a Little Lamb",
+    notes: [[4, 1], [2, 1], [0, 1], [2, 1], [4, 1], [4, 1], [4, 2],
+            [2, 1], [2, 1], [2, 2], [4, 1], [7, 1], [7, 2]],
+  },
+  joy: {
+    name: "Ode to Joy",
+    notes: [[4, 1], [4, 1], [5, 1], [7, 1], [7, 1], [5, 1], [4, 1], [2, 1],
+            [0, 1], [0, 1], [2, 1], [4, 1], [4, 1.5], [2, 0.5], [2, 2]],
+  },
+  scale: {
+    name: "Up and down",
+    notes: [[0, 0.5], [2, 0.5], [4, 0.5], [5, 0.5], [7, 0.5], [9, 0.5], [11, 0.5], [12, 1],
+            [11, 0.5], [9, 0.5], [7, 0.5], [5, 0.5], [4, 0.5], [2, 0.5], [0, 1]],
+  },
+};
+
+const COUNT_IN = 2;        // beats of ball before the first note
+const TAIL = 2;            // beats of rest before it comes round again
+
+function buildTune(key) {
+  const spec = TUNES[key] || TUNES.twinkle;
+  let beat = COUNT_IN;
+  const notes = spec.notes.map(([step, beats]) => {
+    const n = { step, midi: state.low + step, beat, beats, fired: false, at: null, got: false };
+    beat += beats;
+    return n;
+  });
+  return { name: spec.name, notes, beats: beat + TAIL };
+}
+
+function tuneRange(tune) {
+  const m = tune.notes.map((n) => n.midi);
+  return [Math.min(...m), Math.max(...m)];
+}
+
+function startTune() {
+  const ctx = audio();
+  state.bpm = parseInt($("speed").value, 10);
+  state.tune = buildTune($("tune").value);
+  state.play = { t0: ctx.currentTime + 0.15, beat: 0 };
+  $("play").classList.add("on");
+  fit();
+  say(`${state.tune.name} — the ball lands on each note as it sounds. Play along.`);
+}
+
+function stopTune() {
+  state.play = null; state.tune = null;
+  $("play").classList.remove("on");
+  fit();
+  say("Stopped. Press Play again, or strike the bars yourself.");
+}
+
+/* The clock. Everything — the lane, the ball, the strike and the sound —
+ * is read from the audio context, which is the only clock that does not
+ * stutter when the page is busy. */
+function tickTune() {
+  const p = state.play, tune = state.tune, ctx = state.ctx;
+  if (!p || !tune || !ctx) return;
+  const spb = 60 / state.bpm;
+  let beat = (ctx.currentTime - p.t0) / spb;
+  if (beat >= tune.beats) {                 // round again, on the same grid
+    p.t0 += tune.beats * spb;
+    beat -= tune.beats;
+    for (const n of tune.notes) { n.fired = false; n.got = false; n.at = null; }
+  }
+  p.beat = beat;
+
+  // Sound is scheduled a little ahead of time; the bar is struck when that
+  // moment actually arrives, so the ring matches what is heard.
+  const ahead = beat + 0.25 / spb;
+  for (const n of tune.notes) {
+    if (n.fired || n.beat > ahead) continue;
+    n.fired = true;
+    n.at = p.t0 + n.beat * spb;
+    // Anything already well past — the page was busy, or was not being
+    // drawn at all — is let go rather than fired in a heap.
+    if (ctx.currentTime - n.at > 0.25) { n.at = null; continue; }
+    if ($("sound").checked) mallet(n.midi, n.at);
+  }
+  for (const n of tune.notes) {
+    if (n.at !== null && ctx.currentTime >= n.at) { n.at = null; strike(n.midi, false, true); }
+  }
+}
+
+/* Playing the right note near its moment lights its tile. */
+function markPlayed(midi) {
+  const p = state.play, tune = state.tune;
+  if (!p || !tune) return;
+  let best = null, closest = 0.45;          // within about half a beat
+  for (const n of tune.notes) {
+    const d = Math.abs(n.beat - p.beat);
+    if (n.midi === midi && !n.got && d < closest) { best = n; closest = d; }
+  }
+  if (best) best.got = true;
+}
+
+/* ----------------------------------------------------------------- lane */
+
+/* Notes run right to left towards the now line; the ball leaves one tile and
+ * lands on the next at the beat it sounds. Both ends of its arc are the
+ * tiles' own positions, so the landing is the note. */
+function drawLane(g, w, h) {
+  const p = state.play, tune = state.tune;
+  if (!p || !tune || state.laneH <= 0) return;
+  const band = state.laneH, top = h - band;
+  const ppb = Math.max(42, Math.min(120, w / 7));
+  const nowX = Math.max(54, w * 0.16);
+  const [lo, hi] = tuneRange(tune);
+  const span = Math.max(1, hi - lo);
+  const tileH = Math.max(11, Math.min(20, band * 0.15));
+  const zoneTop = top + band * 0.52, zoneBot = h - Math.max(9, band * 0.13) - tileH;
+  const xFor = (beat) => nowX + (beat - p.beat) * ppb;
+  const yFor = (midi) => zoneBot - ((midi - lo) / span) * (zoneBot - zoneTop);
+
+  g.fillStyle = "rgba(255,255,255,0.025)";
+  g.fillRect(0, top, w, band);
+  g.strokeStyle = "#1b242c"; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(0, top + 0.5); g.lineTo(w, top + 0.5); g.stroke();
+
+  // The now line: where a note is due.
+  g.strokeStyle = "rgba(255,255,255,0.18)"; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(nowX, top + 6); g.lineTo(nowX, h - 4); g.stroke();
+
+  g.textBaseline = "middle";
+  for (const n of tune.notes) {
+    for (const lap of [0, tune.beats]) {    // the next pass, already on its way
+      const x = xFor(n.beat + lap), tw = n.beats * ppb - 5;
+      if (x > w + 40 || x + tw < -40) continue;
+      const y = yFor(n.midi);
+      const past = n.beat + lap < p.beat;
+      g.globalAlpha = past ? 0.35 : 1;
+      g.fillStyle = n.got ? "#46d7a1" : colourFor(n.midi);
+      roundRect(g, x, y, Math.max(10, tw), tileH, Math.min(6, tileH / 2));
+      g.fill();
+      if (tw > 26) {
+        g.fillStyle = "rgba(0,0,0,0.62)"; g.textAlign = "center";
+        g.font = `600 ${Math.max(9, Math.min(12, tileH * 0.72))}px "Segoe UI", system-ui, sans-serif`;
+        g.fillText(noteName(n.midi), x + tw / 2, y + tileH / 2 + 0.5);
+      }
+      g.globalAlpha = 1;
+    }
+  }
+
+  // The tune's name, out of the ball's way.
+  g.textAlign = "right"; g.fillStyle = "rgba(255,255,255,0.32)";
+  g.font = '600 11px "Segoe UI", system-ui, sans-serif';
+  g.fillText(tune.name, w - 10, top + band * 0.2);
+  g.textBaseline = "alphabetic";
+
+  drawBall(g, tune, p, { xFor, yFor, zoneBot, band });
+}
+
+function drawBall(g, tune, p, m) {
+  const seq = tune.notes;
+  let i = seq.findIndex((n) => n.beat > p.beat);
+  // Past the last note the ball is already travelling to the first note of
+  // the next pass, which is the same point the clock wraps to.
+  const to = i < 0 ? { beat: tune.beats + seq[0].beat, midi: seq[0].midi } : seq[i];
+  const from = i === 0 ? { beat: to.beat - COUNT_IN, midi: to.midi }
+             : i < 0 ? seq[seq.length - 1] : seq[i - 1];
+
+  const gap = Math.max(0.001, to.beat - from.beat);
+  const t = Math.max(0, Math.min(1, (p.beat - from.beat) / gap));
+  const r = Math.max(7, Math.min(13, m.band * 0.11));
+  const x0 = m.xFor(from.beat), x1 = m.xFor(to.beat);
+  const y0 = m.yFor(from.midi) - r, y1 = m.yFor(to.midi) - r;
+  const arc = Math.min(m.band * 0.95, 24 + gap * 28);
+  // Both ends of the arc scroll leftwards at the same rate, so interpolating
+  // them evenly would hold the ball still over the now line. Leaving fast and
+  // arriving slow makes it leap forward onto the note coming in, then ride it
+  // down — and since the ease ends at exactly 1, the landing is still the
+  // note's own moment.
+  const e = 1 - Math.pow(1 - t, 4);
+  const x = x0 + (x1 - x0) * e;
+  const y = y0 + (y1 - y0) * t - Math.sin(Math.PI * t) * arc;
+  // Squashed as it leaves and as it lands, round in the air.
+  const squash = 1 - 0.3 * Math.max(0, 1 - Math.min(t, 1 - t) * 9);
+
+  g.fillStyle = "rgba(0,0,0,0.35)";           // its shadow on the tiles
+  g.beginPath(); g.ellipse(x, m.zoneBot + 3, r * 0.9, r * 0.28, 0, 0, Math.PI * 2); g.fill();
+
+  const grad = g.createRadialGradient(x - r * 0.35, y - r * 0.45, r * 0.15, x, y, r);
+  grad.addColorStop(0, "#ffffff");
+  grad.addColorStop(0.55, "#ffe9a8");
+  grad.addColorStop(1, "#f2a93b");
+  g.fillStyle = grad;
+  g.beginPath(); g.ellipse(x, y, r, r * squash, 0, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = "rgba(255,255,255,0.5)"; g.lineWidth = 1;
+  g.beginPath(); g.ellipse(x, y, r, r * squash, 0, 0, Math.PI * 2); g.stroke();
+  state.ball = { x, y, t, midi: to.midi, beat: to.beat };
+}
+
 /* --------------------------------------------------------------- strike */
 
 function barFor(midi) { return state.bars.find((b) => b.midi === midi) || null; }
 
-function strike(midi, fromClick) {
+function strike(midi, sound, byTune) {
+  if (!byTune) markPlayed(midi);
   const bar = barFor(midi);
   if (bar) {
     bar.hit = 1;
@@ -465,13 +695,13 @@ function strike(midi, fromClick) {
     state.labels.push({ x: bar.x + bar.w / 2, y: bar.y - 10, text: noteName(midi),
       life: 1, colour: bar.row === "front" ? bar.colour : "#8fb6ff" });
   }
-  if (fromClick && $("sound").checked) mallet(midi);
+  if (sound && $("sound").checked) mallet(midi);
 }
 
 /* A mallet: a bright partial over a fundamental, decaying fast. */
-function mallet(midi) {
+function mallet(midi, when) {
   const ctx = audio();
-  const now = ctx.currentTime;
+  const now = Math.max(ctx.currentTime, when || 0);
   const out = ctx.createGain();
   out.gain.setValueAtTime(0.0001, now);
   out.gain.exponentialRampToValueAtTime(0.35, now + 0.005);
@@ -565,26 +795,6 @@ function showReading() {
   $("cents").style.color = r ? (Math.abs(r.cents) <= 12 ? "#46d7a1" : Math.abs(r.cents) <= 30 ? "#e9b44c" : "#f08079") : "";
 }
 
-/* ------------------------------------------------------------------ demo */
-
-/* Something to look at without a microphone: a little tune up and down. */
-function toggleDemo() {
-  if (state.demo) {
-    clearInterval(state.demo); state.demo = null;
-    $("demo").classList.remove("on");
-    return;
-  }
-  const naturals = state.bars.filter((b) => b.row === "front").map((b) => b.midi);
-  if (!naturals.length) return;
-  const tune = [0, 2, 4, 2, 0, 4, 3, 2, 1, 2, 3, 4, 2, 0].map((i) => naturals[i % naturals.length]);
-  let i = 0;
-  $("demo").classList.add("on");
-  state.demo = setInterval(() => {
-    strike(tune[i % tune.length], true);
-    i++;
-  }, 320);
-}
-
 /* ------------------------------------------------------------------ wire */
 
 function say(text) { $("status").textContent = text; }
@@ -595,7 +805,9 @@ function frame() {
   if (canvas.clientWidth !== box.clientWidth || canvas.clientHeight !== box.clientHeight) fit();
   const g = canvas.getContext("2d");
   if (state.listening) { analyse(); showReading(); }
+  tickTune();
   draw(g, box.clientWidth, box.clientHeight);
+  drawLane(g, box.clientWidth, box.clientHeight);
   state.raf = requestAnimationFrame(frame);
 }
 
@@ -612,6 +824,8 @@ function rebuild() {
   state.low = parseInt($("low").value, 10);
   state.octaves = parseInt($("octaves").value, 10);
   state.shape = $("shape").value;
+  // A tune is written in steps, so moving the instrument transposes it.
+  if (state.tune) for (const n of state.tune.notes) n.midi = state.low + n.step;
   fit();
 }
 
@@ -626,7 +840,9 @@ function wire() {
         : "Could not open the microphone: " + e.message);
     }
   };
-  $("demo").onclick = () => toggleDemo();
+  $("play").onclick = () => (state.play ? stopTune() : startTune());
+  $("tune").onchange = () => { if (state.play) startTune(); };
+  $("speed").onchange = () => { if (state.play) startTune(); };
   $("low").onchange = rebuild;
   $("octaves").onchange = rebuild;
   $("shape").onchange = rebuild;
@@ -655,6 +871,15 @@ function wire() {
   const refitSoon = () => { clearTimeout(refit); refit = setTimeout(fit, 120); };
   window.addEventListener("resize", () => { fit(); refitSoon(); });
   window.addEventListener("orientationchange", refitSoon);
+
+  // A page that is not on screen is not animated, so the tune would run on
+  // in silence and come back somewhere else. It waits instead.
+  document.addEventListener("visibilitychange", () => {
+    const p = state.play;
+    if (!p || !state.ctx) return;
+    if (document.hidden) p.hiddenAt = state.ctx.currentTime;
+    else if (p.hiddenAt != null) { p.t0 += state.ctx.currentTime - p.hiddenAt; p.hiddenAt = null; }
+  });
   if (window.visualViewport) window.visualViewport.addEventListener("resize", refitSoon);
 
   // A phone screen holds fewer bars comfortably, so it starts with one octave.
@@ -668,7 +893,8 @@ function wire() {
 wire();
 
 // Handy from the console, and what the checks in the repo drive.
-window.xylo = { state, strike, detectPitch, layout, barFor, startListening, stopListening };
+window.xylo = { state, strike, detectPitch, layout, barFor, startListening, stopListening,
+                startTune, stopTune, buildTune, tickTune };
 </script>
 </body>
 </html>

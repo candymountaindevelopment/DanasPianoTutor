@@ -1258,6 +1258,23 @@ frame and drives the dip, the halo, the ripple and the floating name. Input
 is a pointer (multi-touch, `touch-action: none`), the computer keys
 `a w s e d f t g y h u j k o l p`, the demo tune, or the microphone.
 
+**The tune and the ball.** `TUNES` are written as `[step, beats]` above the
+instrument's lowest note, so *From* transposes them; `buildTune` lays them on
+a beat grid with a two-beat count-in and a two-beat tail, and the tail is what
+makes the loop seamless. The clock is the audio context: `tickTune` computes
+`beat = (currentTime - t0) × bpm / 60` each frame, hands notes to the
+scheduler a quarter-second early (`mallet(midi, when)`), strikes the bar when
+that moment arrives, and drops anything more than 0.25 s late rather than
+firing a heap of it at once. The lane places a note at
+`nowX + (beat_note - beat_now) × ppb` and the ball's arc runs between the
+positions of the note it left and the note it is going to — the same numbers,
+so the landing cannot drift from the sound. Those two ends scroll at the same
+rate, so an even interpolation would hold the ball still over the now line;
+it uses `1 - (1 - t)⁴` instead, which leaps forward onto the note coming in
+and still ends at exactly 1. Striking the right note within 0.45 beats marks
+its tile green. A hidden page is not animated, so `visibilitychange` moves
+`t0` by the time spent away instead of letting the tune run on unwatched.
+
 **Hearing.** The same YIN as `listen/pitch.js`: 4096-sample windows,
 threshold 0.15, clarity ≥ 0.6, 60–2200 Hz, plus a gate the *Sensitivity*
 slider moves between −70 and −30 dB. Two rules keep it from flickering
