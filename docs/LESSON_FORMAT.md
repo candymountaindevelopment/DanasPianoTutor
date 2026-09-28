@@ -184,8 +184,9 @@ written.
 
 ## 7. Voices
 
-The built-in voices are chip-style recipes rendered by RAW's synthesiser:
-`piano` (default), `music_box`, `organ`, `chip`. To design your own, add an
+The built-in voices are rendered by RAW's synthesiser: `piano` (default) — a
+struck string: a stack of partials that darkens as it decays and never holds —
+and the chip voices `music_box`, `organ` and `chip`, which do hold. To design your own, add an
 `instruments` entry in the RAW authoring format (see `AUTHORING_FORMAT.md`) and
 reference it by name — always set `root_note`:
 

@@ -324,7 +324,17 @@ tempo.
 Registered in `raw/synth/oscillator.py` with `@oscillator(name)`; each is a
 pure function `(phase, duty, rng) -> samples` and never sees time. Built in:
 `sine`, `square`, `triangle`, `saw`, `noise` (phase-clocked), `white`,
-`pulse_pair`.
+`pulse_pair`, `string`.
+
+`string` is a struck or plucked stack: partials 1–20 with a rolloff exponent
+that `duty` controls (0 is nearly a sine, 1 the full stack, with a raised
+cosine over the top so the edge of the stack does not buzz). Sweep the duty
+trajectory downwards and the note darkens as it decays, which is the cue that
+tells an ear something was struck rather than switched on. Twenty sines a
+sample would be dear, so the stack is precomputed at nine brightnesses and read
+as a wavetable — two lookups and a blend per sample, the cost of `noise`. Every
+level carries the same RMS, so darkening does not also swell the note, and the
+bank is then scaled to peak at 1.0.
 
 ### 6.6 Envelope and drift
 
@@ -780,6 +790,20 @@ Design points:
   system's music glyphs (Segoe UI Symbol on Windows), fitted by measured ink
   bounds; a drawn fallback exists for fonts without them. Beams are not drawn
   (eighths get flags), which is adequate for beginner material.
+- **The piano.** Three things separate a piano from a tone that is switched
+  on, and the waveform alone is none of them: a *stack* of partials (the
+  `string` oscillator, §6.5); that stack *darkening* as it decays, since the
+  upper partials die first (`duty` swept 0.98 → 0.06, exponentially); and no
+  plateau — a held key falls fast and then quietly for a long time, which the
+  ADSR approximates in two straight segments (to 0.34 in 0.12 s, then to
+  nothing). `stretch_mode="preserve_impact"` keeps that first segment the same
+  length whatever the note is worth, so a minim is a crotchet with a longer
+  tail rather than a slower attack — the strike belongs to the hammer, not to
+  the note value. The three chip voices keep `uniform` and hold for their whole
+  value, which is what they are for. Not modelled: key scaling (a real piano's
+  top notes die away far sooner than its bottom ones) and unison detune, both
+  of which would cost a second render per note. `tests/test_teach.py`
+  `TestPianoVoice` holds the three properties above.
 - **Playback.** `player.render_lesson` mixes one engine render per note (cached
   by voice, pitch, length and gain) plus metronome clicks on the beat grid,
   with an optional count-in bar prefixed. `LessonTransport` plays the count-in

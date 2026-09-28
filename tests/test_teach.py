@@ -594,3 +594,60 @@ class TestPracticeMetronome(unittest.TestCase):
         sb = np.asarray(b.buffer.samples).reshape(-1)
         self.assertEqual(len(sa), len(sb))
         self.assertFalse(np.allclose(sa, sb), "the practice option did not change the click")
+
+
+class TestPianoVoice(unittest.TestCase):
+    """What separates a struck string from a tone that is switched on."""
+
+    @staticmethod
+    def centroid(x: np.ndarray, sr: int = 44100) -> float:
+        w = np.asarray(x, dtype=np.float64).reshape(-1)
+        w = w[: 4096] * np.hanning(min(4096, len(w)))[: len(w[:4096])]
+        spectrum = np.abs(np.fft.rfft(w))
+        freqs = np.fft.rfftfreq(len(w), 1.0 / sr)
+        return float((spectrum * freqs).sum() / max(spectrum.sum(), 1e-12))
+
+    @staticmethod
+    def rms(x: np.ndarray) -> float:
+        w = np.asarray(x, dtype=np.float64).reshape(-1)
+        return float(np.sqrt(np.mean(w * w))) if len(w) else 0.0
+
+    def test_string_oscillator_is_brighter_with_duty(self):
+        from raw.synth.oscillator import generate
+
+        n = 44100
+        phase = np.cumsum(np.full(n, 2 * np.pi * 261.6256 / 44100))
+        rng = np.random.default_rng(0)
+        waves = {b: generate("string", phase, np.full(n, b), rng) for b in (0.0, 0.5, 1.0)}
+        centroids = [self.centroid(waves[b]) for b in (0.0, 0.5, 1.0)]
+        self.assertLess(centroids[0], centroids[1])
+        self.assertLess(centroids[1], centroids[2])
+        # Equal loudness across the sweep: a note that darkens must not swell.
+        levels = [self.rms(w) for w in waves.values()]
+        self.assertLess(max(levels) - min(levels), 0.01)
+        self.assertLessEqual(max(float(np.abs(w).max()) for w in waves.values()), 1.0)
+
+    def test_piano_note_strikes_darkens_and_dies_away(self):
+        from raw.synth import engine
+        from raw.teach.voice import voice
+
+        r = engine.render(voice("piano"), 44100, {"duration": 2.0})
+        y = np.asarray(r.buffer.samples, dtype=np.float64).reshape(-1)
+        self.assertEqual(r.warnings, [])
+        strike, middle, end = y[:4410], y[len(y) // 2:len(y) // 2 + 4410], y[-4410:]
+        # It falls away instead of holding: a piano key that is held down is
+        # quieter a second later, and much quieter at the end.
+        self.assertGreater(self.rms(strike), 3 * self.rms(middle))
+        self.assertGreater(self.rms(middle), self.rms(end))
+        # And it darkens as it falls — the upper partials go first.
+        self.assertGreater(self.centroid(strike), 1.5 * self.centroid(y[-8192:]))
+
+    def test_piano_keeps_its_attack_however_long_the_note(self):
+        """The strike is a property of the hammer, not of the note's value."""
+        from raw.synth import engine
+        from raw.teach.voice import voice
+
+        short = np.asarray(engine.render(voice("piano"), 44100, {"duration": 0.5}).buffer.samples).reshape(-1)
+        long = np.asarray(engine.render(voice("piano"), 44100, {"duration": 3.0}).buffer.samples).reshape(-1)
+        for i in (0, 2205, 4410):
+            self.assertAlmostEqual(self.rms(short[i:i + 2205]), self.rms(long[i:i + 2205]), places=2)

@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.12.0",
+    "version": "1.13.0",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -863,6 +863,18 @@
         "web_api.about() carries voices and span_range, so the brief names what this build actually has instead of a copy that goes stale; a test holds them to VOICE_NAMES and MIN_SPAN/MAX_SPAN.",
         "copyText(): clipboard API, then a hidden textarea and execCommand, then the text shown selected in the reference dialog — a prompt box cannot hold 14 kB.",
         "The script and dialog heads wrap on a phone instead of squeezing a button's words into a three-line column."
+      ]
+    },
+    {
+      "date": "2026-09-28",
+      "version": "1.13.0",
+      "type": "change",
+      "summary": "The piano sounds like a struck string",
+      "changes": [
+        "New core oscillator `string`: a harmonic stack of 20 partials whose brightness is set by `duty`, read from a nine-level wavetable bank so it costs about what the noise oscillator costs. Every level carries the same RMS, so a note that darkens does not swell.",
+        "The piano voice is built from it: the stack darkens as it decays (duty swept 0.98 to 0.06 exponentially), and the envelope has no plateau — it falls to a third in 0.12 s and then quietly away, with preserve_impact keeping that strike the same length whatever the note is worth. Measured on a 2 s C4: the first 100 ms is 3.5 times the level of the middle, and the spectral centroid falls from 720 Hz to 323 Hz.",
+        "It also renders faster than the voice it replaces (4 ms against 14 ms for a 0.7 s note), because the drive filter it used is gone.",
+        "Not modelled: key scaling and unison detune, both of which cost a second render per note."
       ]
     }
   ]

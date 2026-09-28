@@ -232,13 +232,17 @@ or `loop` (repeat the region's content).
 ## 8. Vocabulary
 
 ```
-oscillator:   sine  square  triangle  saw  noise  white  pulse_pair
+oscillator:   sine  square  triangle  saw  noise  white  pulse_pair  string
 from_preset:  laser  coin  jump  hit  explosion  blip  pad  drone
 stretch:      uniform  preserve_attack  preserve_impact  custom
 curve:        exponential  linear  step
 region role:  attack  transient  body  tail  custom
 region mode:  stretch  sustain  loop
 ```
+
+`string` is a struck-string harmonic stack whose brightness is `duty`: sweep
+the duty trajectory from near 1 down to near 0 and the note darkens as it
+decays, the way a piano or a plucked string does.
 
 `noise` is *pitched* noise (it follows the pitch curve, like a chip LFSR).
 `white` is plain white noise. For explosions use `white`; for snares and hits use

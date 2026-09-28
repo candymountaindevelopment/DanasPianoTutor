@@ -2,9 +2,11 @@
 
 These are deliberately filter-free: without scipy a biquad runs in pure
 Python, and a lesson renders dozens of notes. Character comes from the
-oscillator, the envelope and a little drive instead. Every voice keeps
-`stretch_mode = "uniform"` so a long note decays over its whole value, the
-way a held piano key sounds to a beginner, rather than dying early.
+oscillator, the envelope and a little drive instead.
+
+The three chip voices keep `stretch_mode = "uniform"`, so a long note holds
+for its whole value. The piano does not: it is a struck string, and a struck
+string decays in its own time however long the note is written (see below).
 """
 
 from __future__ import annotations
@@ -46,13 +48,24 @@ def voice(name: str) -> SynthParams:
             envelope=ADSR(0.004, 0.12, 0.55, 0.08),
             drift=Drift(0.0), stretch_mode="uniform",
         )
-    # piano: a triangle with a quick bright onset, decaying to a soft hold.
+    # piano: a struck string. Three things separate a piano from a synth tone,
+    # and none of them is the waveform on its own:
+    #
+    #   * a stack of partials, not one shape — the `string` oscillator;
+    #   * that stack darkening as it decays, because the upper partials die
+    #     first — the duty trajectory sweeps the brightness down;
+    #   * no plateau. A key that is held does not hold its loudness; it falls
+    #     fast at first and then quietly for a long time. ADSR gives two
+    #     straight segments (to 0.34 in 0.12 s, then to nothing), which is a
+    #     fair approximation of a decay curve, and `preserve_impact` keeps that
+    #     first segment the same length whatever the note is worth, so a
+    #     minim is a crotchet with a longer tail rather than a slower attack.
     return SynthParams(
-        oscillator="triangle", duration=0.5, amplitude=0.8,
+        oscillator="string", duration=0.5, amplitude=0.95,
         pitch=Trajectory.constant(C4_HZ), root_note="C4",
-        envelope=ADSR(0.003, 0.32, 0.28, 0.12),
-        drift=Drift(0.0), stretch_mode="uniform",
-        filters=[FilterNode("drive", {"amount": 0.9}, True, "v1")],
+        duty=Trajectory.ramp(0.98, 0.06, "exponential"),
+        envelope=ADSR(0.002, 0.12, 0.34, 0.38),
+        drift=Drift(0.0), stretch_mode="preserve_impact",
     )
 
 
