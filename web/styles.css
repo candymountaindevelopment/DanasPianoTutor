@@ -255,6 +255,11 @@ td { padding: 4px 6px 4px 0; border-top: 1px solid var(--hairline); font-family:
 .sheet { width: min(1000px, 100%); height: 76vh; display: flex; flex-direction: column;
   background: #0c1113; border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; }
 .sheet-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--hairline); }
+/* On a phone these heads run out of room. A button that keeps its words on
+ * one line and drops to a second row stays legible; one squeezed into a
+ * three-line column does not. */
+.sheet-head, .dialog-head { flex-wrap: wrap; row-gap: 6px; }
+.sheet-head button, .dialog-head button { white-space: nowrap; }
 #script { flex: 1; border: none; border-radius: 0; background: #080c0d; resize: none; padding: 12px 14px;
   font: 12.5px/1.5 var(--mono); white-space: pre; }
 .report { height: 112px; margin: 0; overflow: auto; padding: 8px 14px; border-top: 1px solid var(--hairline);

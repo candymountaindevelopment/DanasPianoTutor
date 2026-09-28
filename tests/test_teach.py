@@ -391,6 +391,15 @@ class TestWebApi(unittest.TestCase):
         self.api = web_api
         self.doc = (EXAMPLES / "03_mary_had_a_little_lamb.json").read_text(encoding="utf-8")
 
+    def test_about_carries_what_a_script_writer_needs(self):
+        """The browser hands these to a chatbot; a hard-coded copy would rot."""
+        from raw.teach.score import MAX_SPAN, MIN_SPAN
+        from raw.teach.voice import VOICE_NAMES
+
+        about = json.loads(self.api.about())
+        self.assertEqual(about["voices"], list(VOICE_NAMES))
+        self.assertEqual(about["span_range"], [MIN_SPAN, MAX_SPAN])
+
     def test_parse_render_engrave_musicxml(self):
         about = json.loads(self.api.about())
         self.assertIn("version", about)

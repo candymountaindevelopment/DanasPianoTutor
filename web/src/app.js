@@ -20,7 +20,8 @@ import { PASSES, runSummary, driftText } from "./run.js";
 import { Settings, FEATURES, PRESETS } from "./settings.js";
 import { Palette } from "./palette.js";
 import { eventsToScript } from "../listen/pitch.js";
-import { download, wavBlob, makeShareLink, readShareLink, store, printLesson } from "./exports.js";
+import { download, copyText, wavBlob, makeShareLink, readShareLink, store, printLesson } from "./exports.js";
+import { chatbotBrief } from "./brief.js";
 
 const $ = (id) => document.getElementById(id);
 const HAND_COLOR = { R: COLORS.now, L: COLORS.left };
@@ -1021,6 +1022,8 @@ class App {
       catch (e) { this.status("Cannot tidy: " + e.message, 0); }
     };
     $("btn-script-close").onclick = () => this.showScript(false);
+    $("btn-brief").onclick = () => this.copyBrief();
+    $("btn-help-brief").onclick = () => this.copyBrief();
     $("script-overlay").addEventListener("click", (e) => { if (e.target === $("script-overlay")) this.showScript(false); });
     $("btn-help-close").onclick = () => $("help").close();
   }
@@ -1040,14 +1043,53 @@ class App {
     $("script-state").textContent = $("script").value !== this.cleanText ? "unsaved changes" : "";
   }
 
+  /* The scripting reference, fetched once and kept. */
+  async reference() {
+    if (this._help === undefined) {
+      try { this._help = await fetch("assets/LESSON_FORMAT.md").then((r) => r.text()); }
+      catch (_) { this._help = null; }
+    }
+    return this._help;
+  }
+
   async showHelp() {
     if (!this.settings.get("tools.help")) return;
-    if (!this._help) {
-      try { this._help = await fetch("assets/LESSON_FORMAT.md").then((r) => r.text()); }
-      catch (_) { this._help = "Could not load the reference."; }
-    }
-    $("help-text").textContent = this._help;
+    $("help-text").textContent = (await this.reference()) || "Could not load the reference.";
     $("help").showModal();
+  }
+
+  /* Hand the whole scripting library to a chatbot in one paste.
+   *
+   * A lesson is JSON, and writing JSON to a specification is work a chatbot is
+   * good at — the format is simply not something anyone knows by heart. So the
+   * app gives it away: the reference verbatim, what this build can do, the
+   * lesson open at the moment as a worked example, and a line for the person to
+   * say what they want. The answer comes back into the Script tab. */
+  async copyBrief() {
+    if (!this.settings.get("tools.help")) return;
+    const reference = await this.reference();
+    if (!reference) { this.status("Could not load the reference to copy.", 0); return; }
+    const text = chatbotBrief({
+      reference,
+      about: this.about,
+      lesson: this.lesson,
+      script: $("script").value || this.cleanText,
+      span: (() => { const v = parseInt($("span").value, 10); return v >= MIN_SPAN && v <= MAX_SPAN ? v : null; })(),
+    });
+    const kb = Math.round(text.length / 102.4) / 10;
+    if (await copyText(text)) {
+      this.status(`Copied the lesson-writing brief (${kb} kB). Paste it into a chatbot, `
+        + "say what lesson you want, then bring the JSON back to this Script tab.", 15000);
+    } else {
+      // Nothing to fall back on that holds this much text, so show it and let
+      // the person copy it themselves with the selection already made.
+      $("help-text").textContent = text;
+      $("help").showModal();
+      const range = document.createRange();
+      range.selectNodeContents($("help-text"));
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      this.status("The clipboard was refused. It is selected here — press Ctrl+C.", 0);
+    }
   }
 
   /* -------------------------------------------------------- switches */
@@ -1266,6 +1308,8 @@ class App {
       { where: "App", label: "Diagnose sound — everything at once", run: () => this.diagnose() },
       { where: "App", label: "Check for a newer build", run: () => this.checkForUpdate(true) },
       { where: "App", label: "Writing lessons — reference", feature: "tools.help", keys: "F1", run: () => this.showHelp() },
+      { where: "Lesson", label: "Copy the scripting library for a chatbot", feature: "tools.help",
+        run: () => this.copyBrief() },
       { where: "App", label: "About Danas Tutor", run: () => {
         const s = $("splash"); s.hidden = false; s.classList.add("ready");
         s.querySelector(".splash-photo").style.display = "";

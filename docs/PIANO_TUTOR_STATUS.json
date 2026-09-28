@@ -3,7 +3,7 @@
     "title": "Danas Piano Tutor — technical status",
     "format": "raw.status",
     "version": 1,
-    "updated": "2026-09-27",
+    "updated": "2026-09-28",
     "maintainer_note": "Hand-maintained. Update 'status' when features change and append to 'changelog' for every change; the repository has no git history, so this file is the record.",
     "related": [
       "docs/TECHNICAL.md#14.5",
@@ -14,7 +14,7 @@
   },
   "product": {
     "name": "Danas Piano Tutor",
-    "version": "1.11.0",
+    "version": "1.12.0",
     "engine": "Retro Audio Workstation 0.2.0",
     "purpose": "Scripted lessons for entry-level piano students: build a simple piece as text, listen at any speed with a metronome, see hand and finger positions, and print the sheet music.",
     "entry_points": {
@@ -851,6 +851,18 @@
         "Both ends of the ball's arc scroll at the same rate, so an even interpolation held it still over the now line; an asymmetric ease (1 - (1 - t)^4) makes it leap forward onto the note coming in and still land exactly on the beat.",
         "Tunes are written as steps above the lowest bar, so From transposes them; striking the right note within 0.45 beats turns its tile green; a hidden page pauses the tune instead of letting it run on unwatched, and notes more than 0.25 s late are dropped rather than fired in a heap.",
         "The old setInterval demo is gone, and the sound switch now covers the tune as well as struck bars."
+      ]
+    },
+    {
+      "date": "2026-09-28",
+      "version": "1.12.0",
+      "type": "feature",
+      "summary": "Copy the scripting library for a chatbot",
+      "changes": [
+        "Copy for a chatbot — in the Script sheet, in the Writing lessons dialog and in the palette — puts the whole lesson format on the clipboard as one message a chatbot can work from: the brief, this build's facts, the lesson open at the moment as a worked example, LESSON_FORMAT.md verbatim, and a line for the person to describe the lesson they want (with the instruction to ask if that line is still there). About 14 kB.",
+        "web_api.about() carries voices and span_range, so the brief names what this build actually has instead of a copy that goes stale; a test holds them to VOICE_NAMES and MIN_SPAN/MAX_SPAN.",
+        "copyText(): clipboard API, then a hidden textarea and execCommand, then the text shown selected in the reference dialog — a prompt box cannot hold 14 kB.",
+        "The script and dialog heads wrap on a phone instead of squeezing a button's words into a three-line column."
       ]
     }
   ]

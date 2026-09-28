@@ -24,8 +24,9 @@ from . import __version__ as TUTOR_VERSION
 from .authoring import LessonResult, lesson_to_author, parse_lesson_document
 from .engrave import engrave
 from .player import NoteCache, PlayOptions, Rendered, render_lesson, render_note
-from .score import HAND_NAMES, HANDS, LEFT, RIGHT, Lesson
+from .score import HAND_NAMES, HANDS, LEFT, MAX_SPAN, MIN_SPAN, RIGHT, Lesson
 from .sheet import lesson_to_musicxml
+from .voice import VOICE_NAMES
 
 _result: LessonResult | None = None
 _cache = NoteCache()
@@ -34,7 +35,16 @@ _last_preview = None
 
 
 def about() -> str:
-    return json.dumps({"name": APP_NAME, "version": TUTOR_VERSION, "engine": RAW_VERSION, "tagline": TAGLINE})
+    """What the app is, and what it can be asked for.
+
+    The voices and the span range travel with it because the browser build
+    hands them to a chatbot when it copies the scripting library: a list that
+    is written out twice is a list that goes stale in one of the two places.
+    """
+    return json.dumps({
+        "name": APP_NAME, "version": TUTOR_VERSION, "engine": RAW_VERSION, "tagline": TAGLINE,
+        "voices": list(VOICE_NAMES), "span_range": [MIN_SPAN, MAX_SPAN],
+    })
 
 
 # ----------------------------------------------------------------- lessons

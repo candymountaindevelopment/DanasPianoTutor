@@ -114,7 +114,7 @@ web/                     Piano Tutor in the browser (§14.6); src/*.js, index.ht
                          and precache.json are build outputs (git-ignored)
 listen/                  Danas Ear, the microphone pitch listener (§14.7)
 tools/                   build_web.py, serve_web.py, check_headers.py
-deploy/                  Caddyfile, cloudflared.yml (self-hosting, §14.6.6)
+deploy/                  Caddyfile, cloudflared.yml (self-hosting, §14.6.7)
 .github/workflows/       pages.yml — builds dist/ and publishes to GitHub Pages
 docs/
 ├── TECHNICAL.md         this file
@@ -947,7 +947,31 @@ and `?reset` — like **Ctrl+Shift+S** and *About → Reset app settings* — is
 way back out of a preset that hid the switches. Presets: *Everything*,
 *Student*, *Kiosk*, *Teacher*.
 
-### 14.6.6 Offline, deployment and hardening
+### 14.6.6 Handing the format to a chatbot
+
+A lesson is JSON written to a specification, which is work a chatbot does well
+— the format is simply not something anyone knows by heart. **Copy for a
+chatbot** (`brief.js`, in the Script sheet, in the reference dialog, and in the
+palette) puts the whole of it on the clipboard as one message: the brief (what
+a lesson is, that the answer must be one JSON document, and what the tutor does
+with it — engraving, fingering, the drawn hands, the microphone scoring, so the
+fingering matters as much as the notes), the facts of this build, the script
+open at the moment as a worked example if it is under 6 kB, `LESSON_FORMAT.md`
+verbatim, and a last line for the person to say what they want — with the
+instruction to ask if that line comes back unedited. About 14 kB in all.
+
+The facts come from `about()` rather than the page: `web_api.about()` now
+carries `voices` and `span_range` (from `VOICE_NAMES` and `MIN_SPAN`/`MAX_SPAN`)
+because a list written out twice goes stale in one of the two places, and a
+test holds them to the Python constants.
+
+`copyText()` in `exports.js` tries `navigator.clipboard`, falls back to a
+hidden textarea and `execCommand("copy")` — which still works on an insecure
+origin — and reports failure, whereupon the app shows the text in the reference
+dialog with the selection already made. A `window.prompt` fallback is no use
+for 14 kB.
+
+### 14.6.7 Offline, deployment and hardening
 
 `sw.js` precaches the file list from `precache.json` under a cache named for
 its content hash and deletes older caches on activation, so the app (including
@@ -986,7 +1010,7 @@ Two deployments are supported:
   server and sends the same headers, so anything that would break under the
   real CSP breaks locally first.
 
-### 14.6.7 Phones
+### 14.6.8 Phones
 
 The same screen, rearranged twice.
 
@@ -1014,7 +1038,7 @@ Touch targets are 40 px under `(pointer: coarse)`, the app is `100dvh` so
 browser chrome cannot push the keyboard off the screen, and the bottom rail
 carries `env(safe-area-inset-bottom)` for a notched phone.
 
-### 14.6.8 Canvas sizing
+### 14.6.9 Canvas sizing
 
 Every Canvas view sizes its backing store to its box times
 `devicePixelRatio`. A canvas whose *layout* size comes from its own backing

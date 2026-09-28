@@ -13,6 +13,31 @@ export function download(name, data, type) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
+/* Put text on the clipboard, and say whether it went.
+ *
+ * navigator.clipboard is the way, but it is refused on an insecure origin and
+ * in a few browsers when the call is not close enough to the click. The old
+ * hidden-textarea trick still works there, and unlike a window.prompt fallback
+ * it survives text too long to fit in a dialog — which the scripting library
+ * is. */
+export async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (_) { /* fall through to the old way */ }
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0";
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, text.length);
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch (_) { ok = false; }
+  ta.remove();
+  return ok;
+}
+
 /* Float32 mono samples → 16-bit PCM WAV. */
 export function wavBlob(samples, sampleRate) {
   const n = samples.length, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);

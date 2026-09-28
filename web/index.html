@@ -186,6 +186,7 @@
       <b>Lesson script</b>
       <span id="script-state" class="quiet"></span>
       <span class="spacer"></span>
+      <button id="btn-brief" data-feature="tools.help" title="Copy the whole scripting reference as one message for a chatbot: paste it in, then say what lesson you want">Copy for a chatbot</button>
       <button id="btn-tidy">Tidy JSON</button>
       <button id="btn-apply" class="primary">Apply</button>
       <button id="btn-script-close">Close</button>
@@ -211,7 +212,11 @@
 </dialog>
 
 <dialog id="help">
-  <div class="dialog-head"><b>Writing lessons</b><button id="btn-help-close">Close</button></div>
+  <div class="dialog-head"><b>Writing lessons</b>
+    <span class="spacer"></span>
+    <button id="btn-help-brief" title="Copy this reference and what the app knows, as one message for a chatbot">Copy for a chatbot</button>
+    <button id="btn-help-close">Close</button>
+  </div>
   <pre id="help-text">Loading…</pre>
 </dialog>
 
